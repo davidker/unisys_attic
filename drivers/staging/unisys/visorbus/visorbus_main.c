@@ -14,6 +14,8 @@
  * details.
  */
 
+#include <linux/acpi.h>
+#include <linux/interrupt.h>
 #include <linux/uuid.h>
 
 #include "visorbus.h"
@@ -782,7 +784,12 @@ EXPORT_SYMBOL_GPL(visorbus_write_channel);
 void
 visorbus_enable_channel_interrupts(struct visor_device *dev)
 {
-	dev_start_periodic_work(dev);
+	if (dev->irq)
+		visorchannel_set_sig_features(dev->visorchannel,
+					      dev->recv_queue,
+					      ULTRA_CHANNEL_ENABLE_INTS);
+	else
+		dev_start_periodic_work(dev);
 }
 EXPORT_SYMBOL_GPL(visorbus_enable_channel_interrupts);
 
@@ -794,7 +801,12 @@ EXPORT_SYMBOL_GPL(visorbus_enable_channel_interrupts);
 void
 visorbus_disable_channel_interrupts(struct visor_device *dev)
 {
-	dev_stop_periodic_work(dev);
+	if (dev->irq)
+		visorchannel_clear_sig_features(dev->visorchannel,
+						dev->recv_queue,
+						ULTRA_CHANNEL_ENABLE_INTS);
+	else
+		dev_stop_periodic_work(dev);
 }
 EXPORT_SYMBOL_GPL(visorbus_disable_channel_interrupts);
 
@@ -838,9 +850,36 @@ visorbus_log_postcode(enum driver_pc file, enum event_pc event, u16 line,
 void
 visorbus_rearm_channel_interrupts(struct visor_device *dev)
 {
-	mod_timer(&dev->timer, jiffies + POLLJIFFIES_NORMALCHANNEL);
+	if (dev->irq)
+		visorchannel_set_sig_features(dev->visorchannel,
+					      dev->recv_queue,
+					      ULTRA_CHANNEL_ENABLE_INTS);
+	else
+		mod_timer(&dev->timer, jiffies + POLLJIFFIES_NORMALCHANNEL);
 }
 EXPORT_SYMBOL_GPL(visorbus_rearm_channel_interrupts);
+
+static irqreturn_t
+visorbus_isr(int irq, void *dev_id)
+{
+	struct visor_device *dev = (struct visor_device *)dev_id;
+	struct visor_driver *drv = to_visor_driver(dev->device.driver);
+
+	/* Disable the interrupt in hardware for this device.
+	 * When the device is done handling the interrupt, it has
+	 * the responsibility of re-arming the interrupt so the SP
+	 * can send another one.
+	 */
+	visorchannel_clear_sig_features(dev->visorchannel,
+					dev->recv_queue,
+					ULTRA_CHANNEL_ENABLE_INTS);
+	if (drv->channel_interrupt) {
+		drv->channel_interrupt(dev);
+		return IRQ_HANDLED;
+	}
+
+	return IRQ_NONE;
+}
 
 int visorbus_set_channel_features(struct visor_device *dev, u64 feature_bits)
 {
@@ -897,6 +936,53 @@ int visorbus_clear_channel_features(struct visor_device *dev, u64 feature_bits)
 	return err;
 }
 
+#define INTERRUPT_VECTOR_MASK 0x3f
+int visorbus_register_for_channel_interrupts(struct visor_device *dev,
+					     u32 queue)
+{
+	int err = 0;
+
+	if (!dev->irq)
+		goto stay_in_polling;
+
+	err = request_irq(dev->irq, visorbus_isr, IRQF_SHARED,
+			  dev_name(&dev->device), dev);
+	if (err < 0) {
+		dev_err(&dev->device,
+			"failed to request irq %d continuing to poll. err = %d",
+			dev->irq, err);
+		goto stay_in_polling;
+	}
+
+	dev_info(&dev->device, "IRQ=%d registered\n", dev->irq);
+
+	err = visorbus_set_channel_features(dev, ULTRA_IO_DRIVER_ENABLES_INTS |
+					    ULTRA_IO_DRIVER_DISABLES_INTS);
+	if (err) {
+		dev_err(&dev->device,
+			"%s failed to set ENALBES ints from chan (%d)\n",
+			__func__, err);
+		goto stay_in_polling;
+	}
+
+	err = visorbus_clear_channel_features(dev, ULTRA_IO_CHANNEL_IS_POLLING);
+	if (err) {
+		dev_err(&dev->device,
+			"%s failed to clear POOLING flag from chan (%d)\n",
+			__func__, err);
+		goto stay_in_polling;
+	}
+
+	dev->wait_ms = 2000;
+	dev->recv_queue = queue;
+	return 0;
+
+stay_in_polling:
+	dev->irq = 0;
+	return err;
+}
+EXPORT_SYMBOL_GPL(visorbus_register_for_channel_interrupts);
+
 /**
  * create_visor_device() - create visor device as a result of receiving the
  *                         controlvm device_create message for a new device
@@ -952,7 +1038,22 @@ create_visor_device(struct visor_device *dev)
 	visorbus_set_channel_state(dev, CHANNELCLI_ATTACHED);
 
 	/*
-	 * device_add does this:
+	 * Automatically set driver into POLLING mode, if the driver
+	 * wants to use interrupts, it's probe can call
+	 * visorbus_register_for_interrupts.
+	 */
+	err = visorbus_set_channel_features(dev, ULTRA_IO_CHANNEL_IS_POLLING |
+					   ULTRA_IO_DRIVER_DISABLES_INTS);
+	if (err) {
+		dev_err(&dev->device,
+			"%s failed to set channel features for chan (%d)\n",
+			__func__, err);
+		goto err_put;
+	}
+	dev->wait_ms = 2;
+
+	/*
+	 *   device_add does this:
 	 *    bus_add_device(dev)
 	 *    ->device_attach(dev)
 	 *      ->for each driver drv registered on the bus that dev is on
