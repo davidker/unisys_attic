@@ -173,6 +173,9 @@ struct visor_device {
 	struct controlvm_message_header *pending_msg_hdr;
 	void *vbus_hdr_info;
 	uuid_le partition_uuid;
+	int irq;
+	int wait_ms;
+	int recv_queue;		/* specifies which queue to receive msgs on */
 };
 
 #define to_visor_device(x) container_of(x, struct visor_device, device)
@@ -289,6 +292,21 @@ void visorbus_disable_channel_interrupts(struct visor_device *dev);
  * it has finished doing its processing.
  */
 void visorbus_rearm_channel_interrupts(struct visor_device *dev);
+
+/**
+ * visorbus_register_for_channel_interrupts(struct visor_device *dev,
+ *					    u32 queue)
+ * @dev: the device on which to register interrupt
+ * @queue: the queue the interrupt will be invoked for
+ *
+ * If the driver wants to receive s-Par interrupts for a given device
+ * it most register for the interrupt.
+ *
+ * Returns error on failure, 0 for success.
+ *
+ */
+int visorbus_register_for_channel_interrupts(struct visor_device *dev,
+					     u32 queue);
 
 /**
  * visorchannel_signalremove() - removes a message from the designated
