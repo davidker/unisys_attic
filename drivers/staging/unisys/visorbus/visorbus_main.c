@@ -834,6 +834,61 @@ visorbus_log_postcode(enum driver_pc file, enum event_pc event, u16 line,
 			       MDS_APPOS, postcode);
 }
 
+int visorbus_set_channel_features(struct visor_device *dev, u64 feature_bits)
+{
+	int channel_offset = 0, err = 0;
+	u64 features;
+
+	channel_offset = offsetof(struct channel_header,
+				  features);
+	err = visorbus_read_channel(dev, channel_offset, &features, 8);
+	if (err) {
+		dev_err(&dev->device,
+			"%s failed to get features from chan (%d)\n",
+			__func__, err);
+		return err;
+	}
+
+	features |= (feature_bits);
+
+	err = visorbus_write_channel(dev, channel_offset, &features, 8);
+	if (err) {
+		dev_err(&dev->device,
+			"%s failed to get features from chan (%d)\n",
+			__func__, err);
+		return err;
+	}
+	return err;
+}
+
+int visorbus_clear_channel_features(struct visor_device *dev, u64 feature_bits)
+{
+	int channel_offset = 0, err = 0;
+	u64 features, mask;
+
+	channel_offset = offsetof(struct channel_header,
+				  features);
+	err = visorbus_read_channel(dev, channel_offset, &features, 8);
+	if (err) {
+		dev_err(&dev->device,
+			"%s failed to get features from chan (%d)\n",
+			__func__, err);
+		return err;
+	}
+
+	mask = ~(feature_bits);
+	features &= mask;
+
+	err = visorbus_write_channel(dev, channel_offset, &features, 8);
+	if (err) {
+		dev_err(&dev->device,
+			"%s failed to get features from chan (%d)\n",
+			__func__, err);
+		return err;
+	}
+	return err;
+}
+
 /**
  * create_visor_device() - create visor device as a result of receiving the
  *                         controlvm device_create message for a new device
