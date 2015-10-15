@@ -101,6 +101,7 @@ struct visorinput_devdata {
 	struct kref kref;
 	struct visor_device *dev;
 	struct mutex lock_visor_dev; /* lock for dev */
+	enum visorinput_device_type devtype;
 	struct input_dev *visorinput_dev;
 	bool paused;
 	bool interrupts_enabled;
@@ -494,7 +495,7 @@ devdata_create(struct visor_device *dev, enum visorinput_device_type devtype)
 	mutex_init(&devdata->lock_visor_dev);
 	mutex_lock(&devdata->lock_visor_dev);
 	devdata->dev = dev;
-
+	devdata->devtype = devtype;
 	devdata->wq = alloc_ordered_workqueue("visorinput", 0);
 	INIT_WORK(&devdata->change_resolution_work_data.work,
 		  async_change_resolution);
@@ -783,6 +784,11 @@ visorinput_channel_interrupt(struct visor_device *dev)
 			input_sync(visorinput_dev);
 			break;
 		case inputaction_set_max_xy:
+			if (devdata->devtype != visorinput_mouse) {
+				dev_err(&dev->device,
+					"mouse resolution change for NON-mouse device!\n");
+				continue;
+			}
 			/*
 			 * we can NOT handle this inline, because this may go
 			 * thru a close() path, which will attempt to stop the
