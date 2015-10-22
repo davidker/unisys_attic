@@ -102,6 +102,7 @@ struct visorinput_devdata {
 	struct visor_device *dev;
 	struct mutex lock_visor_dev; /* lock for dev */
 	enum visorinput_device_type devtype;
+	spinlock_t lock_isr; /* for data accessed in isr */
 	struct input_dev *visorinput_dev;
 	bool paused;
 	bool interrupts_enabled;
@@ -436,6 +437,7 @@ static void devdata_put(struct visorinput_devdata *devdata)
 
 static void async_change_resolution(struct work_struct *work)
 {
+	struct input_dev *visorinput_dev = NULL;
 	struct change_resolution_work *p_change_resolution_work =
 		container_of(work, struct change_resolution_work, work);
 	struct visorinput_devdata *devdata =
@@ -445,12 +447,18 @@ static void async_change_resolution(struct work_struct *work)
 
 	mutex_lock(&devdata->lock_visor_dev);
 
-	if (devdata->paused) /* don't touch device/channel when paused */
-		goto out_locked;
-	if (!devdata->visorinput_dev)
-		goto out_locked;
+	/* devdata->visorinput_dev can only go NULL when lock_isr is held */
 
-	unregister_client_input(devdata->visorinput_dev);
+	if (devdata->paused || (!devdata->visorinput_dev)) {
+		spin_unlock(&devdata->lock_isr);
+		goto out;
+	}
+	visorinput_dev = devdata->visorinput_dev; /* can't unreg with lock */
+	devdata->visorinput_dev = NULL;
+
+	spin_unlock(&devdata->lock_isr);
+
+	unregister_client_input(visorinput_dev);
 	/*
 	 * input_set_abs_params is only effective prior to
 	 * input_register_device().
@@ -469,6 +477,7 @@ static void async_change_resolution(struct work_struct *work)
 
 out_locked:
 	mutex_unlock(&devdata->lock_visor_dev);
+out:
 	devdata_put(devdata);  /* from schedule_mouse_resolution_change() */
 }
 
@@ -502,6 +511,7 @@ devdata_create(struct visor_device *dev, enum visorinput_device_type devtype)
 	devdata->wq = alloc_ordered_workqueue("visorinput", 0);
 	INIT_WORK(&devdata->change_resolution_work_data.work,
 		  async_change_resolution);
+	spin_lock_init(&devdata->lock_isr);
 
 	/*
 	 * visorinput_open() can be called as soon as input_register_device()
@@ -716,6 +726,10 @@ visorinput_channel_interrupt(struct visor_device *dev)
 	if (!devdata)
 		return;
 
+	spin_lock(&devdata->lock_isr);
+	if (devdata->paused) /* don't touch device/channel when paused */
+		goto out_locked;
+
 	visorinput_dev = devdata->visorinput_dev;
 
 	while (visorchannel_signalremove(dev->visorchannel, 0, &r)) {
@@ -812,7 +826,10 @@ visorinput_channel_interrupt(struct visor_device *dev)
 			break;
 		}
 	}
+
+out_locked:
 	devdata_put(devdata);
+	spin_unlock(&devdata->lock_isr);
 }
 
 static int
