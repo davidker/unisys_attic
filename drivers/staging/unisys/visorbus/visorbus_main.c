@@ -524,6 +524,13 @@ unregister_driver_attributes(struct visor_driver *drv)
 	driver_remove_file(&drv->driver, &drv->version_attr);
 }
 
+void
+visorbus_rearm_channel_interrupts(struct visor_device *dev)
+{
+	mod_timer(&dev->timer, jiffies + POLLJIFFIES_NORMALCHANNEL);
+}
+EXPORT_SYMBOL_GPL(visorbus_rearm_channel_interrupts);
+
 static void
 dev_periodic_work(unsigned long __opaque)
 {
@@ -532,7 +539,6 @@ dev_periodic_work(unsigned long __opaque)
 
 	if (drv->channel_interrupt)
 		drv->channel_interrupt(dev);
-	mod_timer(&dev->timer, jiffies + POLLJIFFIES_NORMALCHANNEL);
 }
 
 static void
