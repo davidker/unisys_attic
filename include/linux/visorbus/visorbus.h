@@ -186,6 +186,7 @@ int visorbus_write_channel(struct visor_device *dev,
 			   unsigned long nbytes);
 void visorbus_enable_channel_interrupts(struct visor_device *dev);
 void visorbus_disable_channel_interrupts(struct visor_device *dev);
+void visorbus_rearm_channel_interrupts(struct visor_device *dev);
 
 bool visorchannel_signalremove(struct visorchannel *channel, u32 queue,
 			       void *msg);
