@@ -280,6 +280,17 @@ void visorbus_enable_channel_interrupts(struct visor_device *dev);
 void visorbus_disable_channel_interrupts(struct visor_device *dev);
 
 /**
+ * visorbus_rearm_channel_interrupts() - rearms the interrupts.
+ * #dev: the device on which to rearm interrupts
+ *
+ * When an interrupt is received the device must rearm the interrupt
+ * before receiving another one from s-Par. This function provides
+ * the mechanism for the driver to call to re-arm the interrupt after
+ * it has finished doing its processing.
+ */
+void visorbus_rearm_channel_interrupts(struct visor_device *dev);
+
+/**
  * visorchannel_signalremove() - removes a message from the designated
  *                               channel/queue
  * @channel: the channel the message will be removed from
