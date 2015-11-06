@@ -514,7 +514,8 @@ dev_periodic_work(unsigned long __opaque)
 
 	if (drv->channel_interrupt)
 		drv->channel_interrupt(dev);
-	mod_timer(&dev->timer, jiffies + POLLJIFFIES_NORMALCHANNEL);
+	else
+		mod_timer(&dev->timer, jiffies + POLLJIFFIES_NORMALCHANNEL);
 }
 
 static void
@@ -833,6 +834,13 @@ visorbus_log_postcode(enum driver_pc file, enum event_pc event, u16 line,
 	unisys_extended_vmcall(VMCALL_POST_CODE_LOGEVENT, severity,
 			       MDS_APPOS, postcode);
 }
+
+void
+visorbus_rearm_channel_interrupts(struct visor_device *dev)
+{
+	mod_timer(&dev->timer, jiffies + POLLJIFFIES_NORMALCHANNEL);
+}
+EXPORT_SYMBOL_GPL(visorbus_rearm_channel_interrupts);
 
 int visorbus_set_channel_features(struct visor_device *dev, u64 feature_bits)
 {

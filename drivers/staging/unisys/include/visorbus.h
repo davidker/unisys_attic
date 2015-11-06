@@ -176,17 +176,6 @@ struct visor_device {
 
 #define to_visor_device(x) container_of(x, struct visor_device, device)
 
-int visorbus_register_visor_driver(struct visor_driver *);
-void visorbus_unregister_visor_driver(struct visor_driver *);
-int visorbus_read_channel(struct visor_device *dev,
-			  unsigned long offset, void *dest,
-			  unsigned long nbytes);
-int visorbus_write_channel(struct visor_device *dev,
-			   unsigned long offset, void *src,
-			   unsigned long nbytes);
-void visorbus_enable_channel_interrupts(struct visor_device *dev);
-void visorbus_disable_channel_interrupts(struct visor_device *dev);
-
 enum driver_pc {		/* POSTCODE driver identifier tuples */
 	/* visorbus driver files */
 	VISOR_BUS_PC = 0xF0,
@@ -250,6 +239,37 @@ enum event_pc {			/* POSTCODE event identifier tuples */
 void visorbus_log_postcode(enum driver_pc file, enum event_pc event, u16 line,
 			   u16 info_high, u16 info_low,
 			   enum diag_severity severity);
+int visorbus_register_visor_driver(struct visor_driver *);
+void visorbus_unregister_visor_driver(struct visor_driver *);
+int visorbus_read_channel(struct visor_device *dev,
+			  unsigned long offset, void *dest,
+			  unsigned long nbytes);
+int visorbus_write_channel(struct visor_device *dev,
+			   unsigned long offset, void *src,
+			   unsigned long nbytes);
+void visorbus_enable_channel_interrupts(struct visor_device *dev);
+void visorbus_disable_channel_interrupts(struct visor_device *dev);
+
+/**
+ * visorbus_rearm_channel_interrupts() - rearms the interrupts.
+ * #dev: the device on which to rearm interrupts
+ *
+ * When an interrupt is received the device must rearm the interrupt
+ * before receiving another one from s-Par. This function provides
+ * the mechanism for the driver to call to re-arm the interrupt after
+ * it has finished doing its processing.
+ */
+void visorbus_rearm_channel_interrupts(struct visor_device *dev);
+
+/**
+ * visorchannel_signalremove() - removes a message from the designated
+ *                               channel/queue
+ * @channel: the channel the message will be removed from
+ * @queue:   the queue the message will be removed from
+ * @msg:     the message to remove
+ *
+ * Return: boolean indicating whether the removal succeeded or failed
+ */
 bool visorchannel_signalremove(struct visorchannel *channel, u32 queue,
 			       void *msg);
 bool visorchannel_signalinsert(struct visorchannel *channel, u32 queue,
