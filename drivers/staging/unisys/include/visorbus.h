@@ -184,6 +184,7 @@ int visorbus_write_channel(struct visor_device *dev,
 			   unsigned long nbytes);
 void visorbus_enable_channel_interrupts(struct visor_device *dev);
 void visorbus_disable_channel_interrupts(struct visor_device *dev);
+void visorbus_rearm_channel_interrupts(struct visor_device *dev);
 
 /* Note that for visorchannel_create()
  * <channel_bytes> and <guid> arguments may be 0 if we are a channel CLIENT.
