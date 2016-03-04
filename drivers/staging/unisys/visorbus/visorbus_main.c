@@ -182,7 +182,6 @@ static int
 visorbus_match(struct device *xdev, struct device_driver *xdrv)
 {
 	uuid_le channel_type;
-	int rc = 0;
 	int i;
 	struct visor_device *dev;
 	struct visor_driver *drv;
@@ -190,26 +189,21 @@ visorbus_match(struct device *xdev, struct device_driver *xdrv)
 	dev = to_visor_device(xdev);
 	drv = to_visor_driver(xdrv);
 	channel_type = visorchannel_get_uuid(dev->visorchannel);
-	if (visorbus_forcematch) {
-		rc = 1;
-		goto away;
-	}
+	if (visorbus_forcematch)
+		return 1;
 	if (visorbus_forcenomatch)
-		goto away;
+		return 0;
 
 	if (!drv->channel_types)
-		goto away;
+		return 0;
 	for (i = 0;
 	     (uuid_le_cmp(drv->channel_types[i].guid, NULL_UUID_LE) != 0) ||
 	     (drv->channel_types[i].name);
 	     i++)
 		if (uuid_le_cmp(drv->channel_types[i].guid,
-				channel_type) == 0) {
-			rc = i + 1;
-			goto away;
-		}
-away:
-	return rc;
+				channel_type) == 0)
+			return i + 1;
+	return 0;
 }
 
 /** This is called when device_unregister() is called for the bus device
@@ -310,21 +304,17 @@ devmajorminor_create_file(struct visor_device *dev, const char *name,
 {
 	int maxdevnodes = ARRAY_SIZE(dev->devnodes) / sizeof(dev->devnodes[0]);
 	struct devmajorminor_attribute *myattr = NULL;
-	int x = -1, rc = 0, slot = -1;
+	int x = -1, slot = -1;
 
 	register_devmajorminor_attributes(dev);
 	for (slot = 0; slot < maxdevnodes; slot++)
 		if (!dev->devnodes[slot].attr)
 			break;
-	if (slot == maxdevnodes) {
-		rc = -ENOMEM;
-		goto away;
-	}
+	if (slot == maxdevnodes)
+		return -ENOMEM;
 	myattr = kzalloc(sizeof(*myattr), GFP_KERNEL);
-	if (!myattr) {
-		rc = -ENOMEM;
-		goto away;
-	}
+	if (!myattr)
+		return -ENOMEM;
 	myattr->show = DEVMAJORMINOR_ATTR;
 	myattr->store = NULL;
 	myattr->slot = slot;
@@ -335,17 +325,12 @@ devmajorminor_create_file(struct visor_device *dev, const char *name,
 	dev->devnodes[slot].minor = minor;
 	x = sysfs_create_file(&dev->kobjdevmajorminor, &myattr->attr);
 	if (x < 0) {
-		rc = x;
-		goto away;
+		kfree(myattr);
+		dev->devnodes[slot].attr = NULL;
+		return x;
 	}
 	kobject_uevent(&dev->device.kobj, KOBJ_ONLINE);
-away:
-	if (rc < 0) {
-		kfree(myattr);
-		myattr = NULL;
-		dev->devnodes[slot].attr = NULL;
-	}
-	return rc;
+	return 0;
 }
 
 static void
@@ -387,22 +372,18 @@ static struct kobj_type devmajorminor_kobj_type = {
 static int
 register_devmajorminor_attributes(struct visor_device *dev)
 {
-	int rc = 0, x = 0;
+	int x;
 
 	if (dev->kobjdevmajorminor.parent)
-		goto away;	/* already registered */
+		return 0;	/* already registered */
 	x = kobject_init_and_add(&dev->kobjdevmajorminor,
 				 &devmajorminor_kobj_type, &dev->device.kobj,
 				 "devmajorminor");
-	if (x < 0) {
-		rc = x;
-		goto away;
-	}
+	if (x < 0)
+		return x;
 
 	kobject_uevent(&dev->kobjdevmajorminor, KOBJ_ADD);
-
-away:
-	return rc;
+	return 0;
 }
 
 static void
@@ -767,20 +748,20 @@ visordriver_probe_device(struct device *xdev)
 	wmb();
 	get_device(&dev->device);
 	if (!drv->probe) {
-		up(&dev->visordriver_callback_lock);
 		rc = -ENODEV;
-		goto away;
+		goto err_put_and_up;
 	}
 	rc = drv->probe(dev);
 	if (rc < 0)
-		goto away;
+		goto err_put_and_up;
 
 	fix_vbus_dev_info(dev);
 	up(&dev->visordriver_callback_lock);
-	rc = 0;
-away:
-	if (rc != 0)
-		put_device(&dev->device);
+	return 0;  /* success: reference kept via unmatched get_device() */
+
+err_put_and_up:
+	put_device(&dev->device);
+	up(&dev->visordriver_callback_lock);
 	return rc;
 }
 
@@ -993,7 +974,7 @@ create_visor_device(struct visor_device *dev)
 		POSTCODE_LINUX_3(DEVICE_CREATE_FAILURE_PC, chipset_dev_no,
 				 DIAG_SEVERITY_ERR);
 		rc = -EINVAL;
-		goto away;
+		goto err_put;
 	}
 
 	/* bus_id must be a unique name with respect to this bus TYPE
@@ -1023,23 +1004,23 @@ create_visor_device(struct visor_device *dev)
 	if (rc < 0) {
 		POSTCODE_LINUX_3(DEVICE_ADD_PC, chipset_bus_no,
 				 DIAG_SEVERITY_ERR);
-		goto away;
+		goto err_put;
 	}
 
 	rc = register_devmajorminor_attributes(dev);
 	if (rc < 0) {
 		POSTCODE_LINUX_3(DEVICE_REGISTER_FAILURE_PC, chipset_dev_no,
 				 DIAG_SEVERITY_ERR);
-		goto away_unregister;
+		goto err_unregister;
 	}
 
 	list_add_tail(&dev->list_all, &list_all_device_instances);
-	return 0;
+	return 0; /* success: reference kept via unmatched get_device() */
 
-away_unregister:
+err_unregister:
 	device_unregister(&dev->device);
 
-away:
+err_put:
 	put_device(&dev->device);
 	return rc;
 }
@@ -1477,9 +1458,9 @@ struct channel_size_info {
 int
 visorbus_init(void)
 {
-	int rc = 0;
+	int rc;
 
-	POSTCODE_LINUX_3(DRIVER_ENTRY_PC, rc, POSTCODE_SEVERITY_INFO);
+	POSTCODE_LINUX_3(DRIVER_ENTRY_PC, 0, POSTCODE_SEVERITY_INFO);
 	bus_device_info_init(&clientbus_driverinfo,
 			     "clientbus", "visorbus",
 			     VERSION, NULL);
@@ -1487,14 +1468,14 @@ visorbus_init(void)
 	rc = create_bus_type();
 	if (rc < 0) {
 		POSTCODE_LINUX_2(BUS_CREATE_ENTRY_PC, DIAG_SEVERITY_ERR);
-		goto away;
+		goto err_log;
 	}
 
 	periodic_dev_workqueue = create_singlethread_workqueue("visorbus_dev");
 	if (!periodic_dev_workqueue) {
 		POSTCODE_LINUX_2(CREATE_WORKQUEUE_PC, DIAG_SEVERITY_ERR);
 		rc = -ENOMEM;
-		goto away;
+		goto err_log;
 	}
 
 	/* This enables us to receive notifications when devices appear for
@@ -1504,12 +1485,10 @@ visorbus_init(void)
 				     &chipset_responders,
 				     &chipset_driverinfo);
 
-	rc = 0;
+	return 0;
 
-away:
-	if (rc)
-		POSTCODE_LINUX_3(CHIPSET_INIT_FAILURE_PC, rc,
-				 POSTCODE_SEVERITY_ERR);
+err_log:
+	POSTCODE_LINUX_3(CHIPSET_INIT_FAILURE_PC, rc, POSTCODE_SEVERITY_ERR);
 	return rc;
 }
 
