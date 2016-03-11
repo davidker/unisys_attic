@@ -779,7 +779,7 @@ visordriver_probe_device(struct device *xdev)
 	up(&dev->visordriver_callback_lock);
 	rc = 0;
 away:
-	if (rc != 0)
+	if (rc)
 		put_device(&dev->device);
 	return rc;
 }
