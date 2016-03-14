@@ -552,12 +552,15 @@ dev_periodic_work(void *xdev)
 static void
 dev_start_periodic_work(struct visor_device *dev)
 {
+	down(&dev->visordriver_callback_lock);
 	if (dev->being_removed)
-		return;
+		goto out;
 	/* now up by at least 2 */
 	get_device(&dev->device);
 	if (!visor_periodic_work_start(dev->periodic_work))
 		put_device(&dev->device);
+out:
+	up(&dev->visordriver_callback_lock);
 }
 
 static void
