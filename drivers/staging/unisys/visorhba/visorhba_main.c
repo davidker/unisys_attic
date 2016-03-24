@@ -52,6 +52,7 @@ static int visorhba_resume(struct visor_device *dev,
 
 static ssize_t info_debugfs_read(struct file *file, char __user *buf,
 				 size_t len, loff_t *offset);
+static int set_no_disk_inquiry_result(char *buf, u32 len, u32 lun);
 static struct dentry *visorhba_debugfs_dir;
 static const struct file_operations debugfs_info_fops = {
 	.read = info_debugfs_read,
@@ -772,6 +773,28 @@ do_scsi_linuxstat(struct uiscmdrsp *cmdrsp, struct scsi_cmnd *scsicmd)
 	}
 }
 
+static int set_no_disk_inquiry_result(char *buf, u32 len, u32 lun)
+{
+	const char *disk_name;
+
+	disk_name  = "DELLPSEUDO DEVICE .";
+	/* len has to be more than the min result length*/
+	if (!buf || len < NO_DISK_INQUIRY_RESULT_LEN)
+		return -EINVAL;
+	memset(buf, 0, MINNUM(len, NO_DISK_INQUIRY_RESULT_LEN));
+	buf[2] = (u8)SCSI_SPC2_VER;
+	if (lun) {
+		buf[0] = (u8)DEV_NOT_CAPABLE;
+	} else {
+		buf[0] = (u8)DEV_DISK_CAPABLE_NOT_PRESENT;
+		buf[3] = (u8)DEV_HISUPPORT;
+	}
+	buf[4] = (u8)(MINNUM(len, NO_DISK_INQUIRY_RESULT_LEN) - 5);
+	if (len >= NO_DISK_INQUIRY_RESULT_LEN)
+		memcpy(buf + 8, disk_name, strlen(disk_name));
+	return 0;
+}
+
 /**
  *	do_scsi_nolinuxstat - scsi command didn't have linuxstat
  *	@cmdrsp: response from IOVM
@@ -804,10 +827,8 @@ do_scsi_nolinuxstat(struct uiscmdrsp *cmdrsp, struct scsi_cmnd *scsicmd)
 		 * a disk there so we'll present a processor
 		 * there.
 		 */
-		SET_NO_DISK_INQUIRY_RESULT(buf, cmdrsp->scsi.bufflen,
-					   scsidev->lun,
-					   DEV_DISK_CAPABLE_NOT_PRESENT,
-					   DEV_NOT_CAPABLE);
+		set_no_disk_inquiry_result(buf, cmdrsp->scsi.bufflen,
+					   scsidev->lun);
 
 		if (scsi_sg_count(scsicmd) == 0) {
 			memcpy(scsi_sglist(scsicmd), buf,
