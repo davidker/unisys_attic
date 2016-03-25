@@ -777,7 +777,7 @@ static int set_no_disk_inquiry_result(char *buf, u32 len, u32 lun)
 {
 	if (!buf || len < NO_DISK_INQUIRY_RESULT_LEN)
 		return -EINVAL;
-	memset(buf, 0, min_t(u32, len, NO_DISK_INQUIRY_RESULT_LEN));
+	memset(buf, 0, NO_DISK_INQUIRY_RESULT_LEN);
 	buf[2] = (u8)SCSI_SPC2_VER;
 	if (lun) {
 		buf[0] = (u8)DEV_NOT_CAPABLE;
@@ -785,7 +785,7 @@ static int set_no_disk_inquiry_result(char *buf, u32 len, u32 lun)
 		buf[0] = (u8)DEV_DISK_CAPABLE_NOT_PRESENT;
 		buf[3] = (u8)DEV_HISUPPORT;
 	}
-	buf[4] = (u8)(min_t(u32, len, NO_DISK_INQUIRY_RESULT_LEN) - 5);
+	buf[4] = (u8)(NO_DISK_INQUIRY_RESULT_LEN - 5);
 	strncpy(buf + 8, "DELLPSEUDO DEVICE .", NO_DISK_INQUIRY_RESULT_LEN - 8);
 	return 0;
 }
