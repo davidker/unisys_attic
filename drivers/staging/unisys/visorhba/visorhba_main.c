@@ -775,7 +775,6 @@ do_scsi_linuxstat(struct uiscmdrsp *cmdrsp, struct scsi_cmnd *scsicmd)
 
 static int set_no_disk_inquiry_result(char *buf, u32 len, u32 lun)
 {
-	/* len has to be more than the min result length*/
 	if (!buf || len < NO_DISK_INQUIRY_RESULT_LEN)
 		return -EINVAL;
 	memset(buf, 0, min_t(u32, len, NO_DISK_INQUIRY_RESULT_LEN));
