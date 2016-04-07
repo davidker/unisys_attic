@@ -1,0 +1,19 @@
+# Copyright © 2010 - 2015 UNISYS CORPORATION
+# All rights reserved.
+#
+                                                                      # s-PAR
+                                                                      # s-PAR
+# s-PAR syslog-ng config version 2                                    # s-PAR
+#                                                                     # s-PAR
+filter f_spar_ver { level(debug);                   };                # s-PAR
+filter f_spar_inf { level(info);                    };                # s-PAR
+filter f_spar_wrn { level(warn);                    };                # s-PAR
+filter f_spar_err { level(err, crit, alert, emerg); };                # s-PAR
+destination visordiag_ver { file("/dev/visordiag.1"); };              # s-PAR
+log { source(src); filter(f_spar_ver); destination(visordiag_ver); }; # s-PAR
+destination visordiag_inf { file("/dev/visordiag.2"); };              # s-PAR
+log { source(src); filter(f_spar_inf); destination(visordiag_inf); }; # s-PAR
+destination visordiag_wrn { file("/dev/visordiag.3"); };              # s-PAR
+log { source(src); filter(f_spar_wrn); destination(visordiag_wrn); }; # s-PAR
+destination visordiag_err { file("/dev/visordiag.4"); };              # s-PAR
+log { source(src); filter(f_spar_err); destination(visordiag_err); }; # s-PAR
