@@ -1,0 +1,6 @@
+# Copyright (c) 2013 - 2015 UNISYS CORPORATION
+# All rights reserved
+#
+# These are s-Par-specific rules for udev.
+
+DEVPATH=="/devices/platform/visorchipset*" , ACTION=="change" , RUN+="/lib/udev/spar_visorchipset_guest.sh"
