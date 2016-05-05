@@ -374,6 +374,8 @@ static int forward_taskmgmt_command(enum task_mgmt_types tasktype,
 	cmdrsp->scsitaskmgmt.vdest.lun = scsidev->lun;
 	cmdrsp->scsitaskmgmt.handle = scsicmd_id;
 
+	dev_dbg(&scsidev->sdev_gendev,
+		"visorhba: initiating type=%d taskmgmt command\n", tasktype);
 	if (!visorchannel_signalinsert(devdata->dev->visorchannel,
 				       IOCHAN_TO_IOPART,
 				       cmdrsp))
@@ -386,6 +388,9 @@ static int forward_taskmgmt_command(enum task_mgmt_types tasktype,
 				msecs_to_jiffies(45000)))
 		goto err_del_scsipending_ent;
 
+	dev_dbg(&scsidev->sdev_gendev,
+		"visorhba: taskmgmt type=%d success; result=0x%x\n",
+		 tasktype, notifyresult);
 	if (tasktype == TASK_MGMT_ABORT_TASK)
 		scsicmd->result = DID_ABORT << 16;
 	else
@@ -396,6 +401,8 @@ static int forward_taskmgmt_command(enum task_mgmt_types tasktype,
 	return SUCCESS;
 
 err_del_scsipending_ent:
+	dev_dbg(&scsidev->sdev_gendev,
+		"visorhba: taskmgmt type=%d not executed\n", tasktype);
 	del_scsipending_ent(devdata, scsicmd_id);
 	cleanup_scsitaskmgmt_handles(&devdata->idr, cmdrsp);
 	return FAILED;
@@ -750,6 +757,7 @@ static inline void complete_taskmgmt_command
 	/* copy the result of the taskmgmt and
 	 * wake up the error handler that is waiting for this
 	 */
+	pr_debug("visorhba: notifying initiator with result=0x%x\n", result);
 	*scsi_result_ptr = result;
 	wake_up_all(wq);
 }
