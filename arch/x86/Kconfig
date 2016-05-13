@@ -770,6 +770,8 @@ config PARAVIRT_CLOCK
 
 endif #HYPERVISOR_GUEST
 
+source "arch/x86/visorbus/Kconfig"
+
 config NO_BOOTMEM
 	def_bool y
 
