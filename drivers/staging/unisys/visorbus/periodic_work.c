@@ -18,8 +18,7 @@
  *  Helper functions to schedule periodic work in Linux kernel mode.
  */
 #include <linux/sched.h>
-
-#include "periodic_work.h"
+#include <linux/visorbus/periodic_work.h>
 
 #define MYDRVNAME "periodic_work"
 
