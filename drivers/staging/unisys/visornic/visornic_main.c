@@ -21,7 +21,6 @@
 #include <linux/debugfs.h>
 #include <linux/etherdevice.h>
 #include <linux/netdevice.h>
-#include <linux/kthread.h>
 #include <linux/skbuff.h>
 #include <linux/rtnetlink.h>
 
