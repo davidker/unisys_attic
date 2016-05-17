@@ -134,7 +134,7 @@ enum event_pc {			/* POSTCODE event identifier tuples */
 
 #define POSTCODE_SEVERITY_ERR DIAG_SEVERITY_ERR
 #define POSTCODE_SEVERITY_WARNING DIAG_SEVERITY_WARNING
-/* TODO-> Info currently doesn't show, so we set info=warning */
+/* Info currently isn't logged, so we set info=print */
 #define POSTCODE_SEVERITY_INFO DIAG_SEVERITY_PRINT
 
 /* example call of POSTCODE_LINUX_2(VISOR_CHIPSET_PC, POSTCODE_SEVERITY_ERR);
