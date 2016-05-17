@@ -22,8 +22,12 @@
 #include <linux/netdevice.h>
 #include <linux/uuid.h>
 #include <linux/crash_dump.h>
+#include <linux/visorbus/channel_guid.h>
+#include <linux/visorbus/guestlinuxdebug.h>
+#include <linux/visorbus/version.h>
+#include <linux/visorbus/visorbus.h>
 
-#include "visorbus.h"
+#include "controlvmchannel.h"
 #include "visorbus_private.h"
 #include "vmcallinterface.h"
 
