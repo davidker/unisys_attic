@@ -51,6 +51,7 @@ static int visorhba_pause(struct visor_device *dev,
 			  visorbus_state_complete_func complete_func);
 static int visorhba_resume(struct visor_device *dev,
 			   visorbus_state_complete_func complete_func);
+static void visorhba_isr(struct visor_device *dev);
 
 static struct dentry *visorhba_debugfs_dir;
 
@@ -75,7 +76,7 @@ static struct visor_driver visorhba_driver = {
 	.remove = visorhba_remove,
 	.pause = visorhba_pause,
 	.resume = visorhba_resume,
-	.channel_interrupt = NULL,
+	.channel_interrupt = visorhba_isr,
 };
 MODULE_DEVICE_TABLE(visorbus, visorhba_channel_types);
 MODULE_ALIAS("visorbus:" SPAR_VHBA_CHANNEL_PROTOCOL_UUID_STR);
