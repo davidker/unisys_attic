@@ -117,8 +117,6 @@ struct visorhba_devdata {
 	struct visordisk_info head;
 	unsigned int max_buff_len;
 	int devnum;
-	struct task_struct *thread;
-	int thread_wait_ms;
 	/*
 	 * allows us to pass int handles back-and-forth between us and
 	 * iovm, instead of raw pointers
@@ -1105,7 +1103,6 @@ static int visorhba_probe(struct visor_device *dev)
 	devdata->scsihost = scsihost;
 
 	idr_init(&devdata->idr);
-	devdata->thread_wait_ms = 2;
 	tasklet_init(&devdata->tasklet, process_incoming_rsps,
 		     (unsigned long)devdata);
 
