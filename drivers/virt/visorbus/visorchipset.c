@@ -311,6 +311,7 @@ static void controlvm_respond_physdev_changestate(
 		struct spar_segment_state state);
 
 static void parser_done(struct parser_context *ctx);
+static void *parser_string_get(struct parser_context *ctx);
 
 static struct parser_context *
 parser_init_byte_stream(u64 addr, u32 bytes, bool local, bool *retry)
@@ -381,33 +382,18 @@ parser_id_get(struct parser_context *ctx)
 	return phdr->id;
 }
 
-/*
- * Describes the state from the perspective of which controlvm messages have
- * been received for a bus or device.
- */
-
-enum PARSER_WHICH_STRING {
-	PARSERSTRING_NAME
-};
-
-static void
-parser_param_start(struct parser_context *ctx,
-		   enum PARSER_WHICH_STRING which_string)
+static void *
+parser_name_get(struct parser_context *ctx)
 {
 	struct spar_controlvm_parameters_header *phdr = NULL;
 
 	if (!ctx)
-		return;
+		return NULL;
 
 	phdr = (struct spar_controlvm_parameters_header *)(ctx->data);
-	switch (which_string) {
-	case PARSERSTRING_NAME:
-		ctx->curr = ctx->data + phdr->name_offset;
-		ctx->bytes_remaining = phdr->name_length;
-		break;
-	default:
-		break;
-	}
+	ctx->curr = ctx->data + phdr->name_offset;
+	ctx->bytes_remaining = phdr->name_length;
+	return parser_string_get(ctx);
 }
 
 static void parser_done(struct parser_context *ctx)
@@ -1091,8 +1077,7 @@ bus_configure(struct controlvm_message *inmsg,
 			(bus_info->visorchannel,
 			 cmd->configure_bus.guest_handle);
 		bus_info->partition_uuid = parser_id_get(parser_ctx);
-		parser_param_start(parser_ctx, PARSERSTRING_NAME);
-		bus_info->name = parser_string_get(parser_ctx);
+		bus_info->name = parser_name_get(parser_ctx);
 
 		POSTCODE_LINUX_3(BUS_CONFIGURE_EXIT_PC, bus_no,
 				 POSTCODE_SEVERITY_INFO);
