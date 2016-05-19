@@ -159,7 +159,8 @@ struct visor_device {
 	struct list_head list_all;
 	struct periodic_work *periodic_work;
 	bool being_removed;
-	struct semaphore visordriver_callback_lock;
+	/* mutex to serialize visor_driver function callbacks */
+	struct mutex visordriver_callback_lock;
 	bool pausing;
 	bool resuming;
 	u32 chipset_bus_no;
