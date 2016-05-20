@@ -255,41 +255,6 @@ visorchannel_write(struct visorchannel *channel, ulong offset,
 	return 0;
 }
 
-int
-visorchannel_clear(struct visorchannel *channel, ulong offset, u8 ch,
-		   ulong nbytes)
-{
-	int err;
-	int bufsize = PAGE_SIZE;
-	int written = 0;
-	u8 *buf;
-
-	buf = (u8 *)__get_free_page(GFP_KERNEL);
-	if (!buf)
-		return -ENOMEM;
-
-	memset(buf, ch, bufsize);
-
-	while (nbytes > 0) {
-		int thisbytes = bufsize;
-
-		if (nbytes < thisbytes)
-			thisbytes = nbytes;
-		err = visorchannel_write(channel, offset + written,
-					 buf, thisbytes);
-		if (err)
-			goto out_free_page;
-
-		written += thisbytes;
-		nbytes -= thisbytes;
-	}
-	err = 0;
-
-out_free_page:
-	free_page((unsigned long)buf);
-	return err;
-}
-
 void __iomem  *
 visorchannel_get_header(struct visorchannel *channel)
 {
@@ -490,34 +455,6 @@ visorchannel_signalinsert(struct visorchannel *channel, u32 queue, void *msg)
 	return rc;
 }
 EXPORT_SYMBOL_GPL(visorchannel_signalinsert);
-
-int
-visorchannel_signalqueue_slots_avail(struct visorchannel *channel, u32 queue)
-{
-	struct signal_queue_header sig_hdr;
-	u32 slots_avail, slots_used;
-	u32 head, tail;
-
-	if (!sig_read_header(channel, queue, &sig_hdr))
-		return 0;
-	head = sig_hdr.head;
-	tail = sig_hdr.tail;
-	if (head < tail)
-		head = head + sig_hdr.max_slots;
-	slots_used = head - tail;
-	slots_avail = sig_hdr.max_signals - slots_used;
-	return (int)slots_avail;
-}
-
-int
-visorchannel_signalqueue_max_slots(struct visorchannel *channel, u32 queue)
-{
-	struct signal_queue_header sig_hdr;
-
-	if (!sig_read_header(channel, queue, &sig_hdr))
-		return 0;
-	return (int)sig_hdr.max_signals;
-}
 
 static void
 sigqueue_debug(struct signal_queue_header *q, int which, struct seq_file *seq)
