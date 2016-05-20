@@ -55,7 +55,8 @@ struct visorchannel {
 	uuid_le inst;
 };
 
-/* Creates the struct visorchannel abstraction for a data area in memory,
+/**
+ * Creates the struct visorchannel abstraction for a data area in memory,
  * but does NOT modify this data area.
  */
 static struct visorchannel *
