@@ -226,7 +226,7 @@ static struct visorchipset_busdev_responders busdev_responders = {
 };
 
 /* info for /dev/visorchipset */
-static dev_t major_dev = -1; /**< indicates major num for device */
+static dev_t major_dev = -1; /*< indicates major num for device */
 
 /* prototypes for attributes */
 static ssize_t toolaction_show(struct device *dev,
@@ -396,7 +396,7 @@ parser_id_get(struct parser_context *ctx)
 	return phdr->id;
 }
 
-/** Describes the state from the perspective of which controlvm messages have
+/* Describes the state from the perspective of which controlvm messages have
  *  been received for a bus or device.
  */
 
@@ -1300,7 +1300,8 @@ my_device_destroy(struct controlvm_message *inmsg)
 			      inmsg->hdr.flags.response_expected == 1, 1);
 }
 
-/* When provided with the physical address of the controlvm channel
+/*
+ * When provided with the physical address of the controlvm channel
  * (phys_addr), the offset to the payload area we need to manage
  * (offset), and the size of this payload area (bytes), fills in the
  * controlvm_payload_info struct.  Returns true for success or false
@@ -1368,8 +1369,9 @@ initialize_controlvm_payload(void)
 					  &controlvm_payload_info);
 }
 
-/*  Send ACTION=online for DEVPATH=/sys/devices/platform/visorchipset.
- *  Returns CONTROLVM_RESP_xxx code.
+/*
+ * Send ACTION=online for DEVPATH=/sys/devices/platform/visorchipset.
+ * Returns CONTROLVM_RESP_xxx code.
  */
 static int
 visorchipset_chipset_ready(void)
@@ -1390,8 +1392,9 @@ visorchipset_chipset_selftest(void)
 	return CONTROLVM_RESP_SUCCESS;
 }
 
-/*  Send ACTION=offline for DEVPATH=/sys/devices/platform/visorchipset.
- *  Returns CONTROLVM_RESP_xxx code.
+/*
+ * Send ACTION=offline for DEVPATH=/sys/devices/platform/visorchipset.
+ * Returns CONTROLVM_RESP_xxx code.
  */
 static int
 visorchipset_chipset_notready(void)
@@ -1433,7 +1436,8 @@ chipset_notready(struct controlvm_message_header *msg_hdr)
 		controlvm_respond(msg_hdr, rc);
 }
 
-/* This is your "one-stop" shop for grabbing the next message from the
+/*
+ * This is your "one-stop" shop for grabbing the next message from the
  * CONTROLVM_QUEUE_EVENT queue in the controlvm channel.
  */
 static bool
@@ -1656,7 +1660,8 @@ parahotplug_process_message(struct controlvm_message *inmsg)
 	}
 }
 
-/* Process a controlvm message.
+/*
+ * Process a controlvm message.
  * Return result:
  *    false - this function will return false only in the case where the
  *            controlvm message was NOT processed, but processing must be
@@ -2024,7 +2029,8 @@ device_resume_response(struct visor_device *dev_info, int response)
 	dev_info->pending_msg_hdr = NULL;
 }
 
-/* The parahotplug/devicedisabled interface gets called by our support script
+/*
+ * The parahotplug/devicedisabled interface gets called by our support script
  * when an SR-IOV device has been shut down. The ID is passed to the script
  * and then passed back when the device has been removed.
  */
@@ -2044,7 +2050,8 @@ static ssize_t devicedisabled_store(struct device *dev,
 	return count;
 }
 
-/* The parahotplug/deviceenabled interface gets called by our support script
+/*
+ * The parahotplug/deviceenabled interface gets called by our support script
  * when an SR-IOV device has been recovered. The ID is passed to the script
  * and then passed back when the device has been brought back up.
  */
