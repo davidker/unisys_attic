@@ -64,13 +64,11 @@ struct periodic_work
 	pw->devnam = devnam;
 	return pw;
 }
-EXPORT_SYMBOL_GPL(visor_periodic_work_create);
 
 void visor_periodic_work_destroy(struct periodic_work *pw)
 {
 	kfree(pw);
 }
-EXPORT_SYMBOL_GPL(visor_periodic_work_destroy);
 
 /** Call this from your periodic work worker function to schedule the next
  *  call.
@@ -98,7 +96,6 @@ unlock:
 	write_unlock(&pw->lock);
 	return rc;
 }
-EXPORT_SYMBOL_GPL(visor_periodic_work_nextperiod);
 
 /** This function returns true iff new periodic work was actually started.
  *  If this function returns false, then no work was started
@@ -129,7 +126,6 @@ unlock:
 	write_unlock(&pw->lock);
 	return rc;
 }
-EXPORT_SYMBOL_GPL(visor_periodic_work_start);
 
 /** This function returns true iff your call actually stopped the periodic
  *  work.
@@ -201,4 +197,3 @@ bool visor_periodic_work_stop(struct periodic_work *pw)
 	write_unlock(&pw->lock);
 	return stopped_something;
 }
-EXPORT_SYMBOL_GPL(visor_periodic_work_stop);
