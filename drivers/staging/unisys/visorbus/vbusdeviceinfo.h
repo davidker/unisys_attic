@@ -34,7 +34,8 @@ struct ultra_vbus_deviceinfo {
 
 #pragma pack(pop)
 
-/* Reads chars from the buffer at <src> for <srcmax> bytes, and writes to
+/*
+ * Reads chars from the buffer at <src> for <srcmax> bytes, and writes to
  * the buffer at <p>, which is <remain> bytes long, ensuring never to
  * overflow the buffer at <p>, using the following rules:
  * - printable characters are simply copied from the buffer at <src> to the
@@ -92,7 +93,8 @@ vbuschannel_sanitize_buffer(char *p, int remain, char *src, int srcmax)
 		p++;  chars++;  remain--;	   \
 	} while (0)
 
-/* Converts the non-negative value at <num> to an ascii decimal string
+/*
+ * Converts the non-negative value at <num> to an ascii decimal string
  * at <p>, writing at most <remain> bytes.  Note there is NO '\0' termination
  * written to <p>.
  *
@@ -141,8 +143,9 @@ vbuschannel_itoa(char *p, int remain, int num)
 	return digits;
 }
 
-/* Reads <devInfo>, and converts its contents to a printable string at <p>,
- * writing at most <remain> bytes.  Note there is NO '\0' termination
+/*
+ * Reads <devInfo>, and converts its contents to a printable string at <p>,
+ * writing at most <remain> bytes. Note there is NO '\0' termination
  * written to <p>.
  *
  * Pass <devix> >= 0 if you want a device index presented.
