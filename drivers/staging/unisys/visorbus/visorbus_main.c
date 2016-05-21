@@ -981,6 +981,7 @@ create_visor_device(struct visor_device *dev)
 		goto err_put;
 	}
 	dev->wait_ms = 2;
+	visorbus_set_channel_state(dev, CHANNELCLI_ATTACHED);
 
 	/*  device_add does this:
 	 *    bus_add_device(dev)
@@ -1006,7 +1007,6 @@ create_visor_device(struct visor_device *dev)
 	}
 
 	list_add_tail(&dev->list_all, &list_all_device_instances);
-	visorbus_set_channel_state(dev, CHANNELCLI_ATTACHED);
 	return 0; /* success: reference kept via unmatched get_device() */
 
 err_put:
