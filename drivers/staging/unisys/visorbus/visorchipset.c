@@ -86,7 +86,6 @@ visorchipset_release(struct inode *inode, struct file *file)
 static unsigned long poll_jiffies = POLLJIFFIES_CONTROLVMCHANNEL_FAST;
 /* when we got our last controlvm message */
 static unsigned long most_recent_message_jiffies;
-static int visorbusregistered;
 
 struct parser_context {
 	unsigned long allocbytes;
@@ -98,7 +97,6 @@ struct parser_context {
 };
 
 static struct delayed_work periodic_controlvm_work;
-static DEFINE_SEMAPHORE(notifier_lock);
 
 static struct cdev file_cdev;
 static struct visorchannel **file_controlvm_channel;
@@ -206,24 +204,6 @@ static void parahotplug_process_list(void);
  * CONTROLVM_REPORTEVENT.
  */
 static struct visorchipset_busdev_notifiers busdev_notifiers;
-
-static void bus_create_response(struct visor_device *p, int response);
-static void bus_destroy_response(struct visor_device *p, int response);
-static void device_create_response(struct visor_device *p, int response);
-static void device_destroy_response(struct visor_device *p, int response);
-static void device_resume_response(struct visor_device *p, int response);
-
-static void visorchipset_device_pause_response(struct visor_device *p,
-					       int response);
-
-static struct visorchipset_busdev_responders busdev_responders = {
-	.bus_create = bus_create_response,
-	.bus_destroy = bus_destroy_response,
-	.device_create = device_create_response,
-	.device_destroy = device_destroy_response,
-	.device_pause = visorchipset_device_pause_response,
-	.device_resume = device_resume_response,
-};
 
 /* info for /dev/visorchipset */
 static dev_t major_dev = -1; /**< indicates major num for device */
@@ -683,30 +663,6 @@ struct visor_device *visorbus_get_device_by_id(u32 bus_no, u32 dev_no,
 	return vdev;
 }
 
-void
-visorchipset_register_busdev(
-			struct visorchipset_busdev_notifiers *notifiers,
-			struct visorchipset_busdev_responders *responders,
-			struct ultra_vbus_deviceinfo *driver_info)
-{
-	down(&notifier_lock);
-	if (!notifiers) {
-		memset(&busdev_notifiers, 0,
-		       sizeof(busdev_notifiers));
-		visorbusregistered = 0;	/* clear flag */
-	} else {
-		busdev_notifiers = *notifiers;
-		visorbusregistered = 1;	/* set flag */
-	}
-	if (responders)
-		*responders = busdev_responders;
-	if (driver_info)
-		bus_device_info_init(driver_info, "chipset", "visorchipset",
-				     VERSION, NULL);
-
-	up(&notifier_lock);
-}
-
 static void
 chipset_init(struct controlvm_message *inmsg)
 {
@@ -917,8 +873,6 @@ bus_epilog(struct visor_device *bus_info,
 {
 	struct controlvm_message_header *pmsg_hdr = NULL;
 
-	down(&notifier_lock);
-
 	if (!bus_info) {
 		/* relying on a valid passed in response code */
 		/* be lazy and re-use msg_hdr for this failure, is this ok?? */
@@ -939,7 +893,7 @@ bus_epilog(struct visor_device *bus_info,
 			POSTCODE_LINUX_4(MALLOC_FAILURE_PC, cmd,
 					 bus_info->chipset_bus_no,
 					 POSTCODE_SEVERITY_ERR);
-			goto out_unlock;
+			return;
 		}
 
 		memcpy(pmsg_hdr, msg_hdr,
@@ -950,25 +904,16 @@ bus_epilog(struct visor_device *bus_info,
 	if (response == CONTROLVM_RESP_SUCCESS) {
 		switch (cmd) {
 		case CONTROLVM_BUS_CREATE:
-			if (busdev_notifiers.bus_create) {
-				(*busdev_notifiers.bus_create) (bus_info);
-				goto out_unlock;
-			}
+			chipset_bus_create(bus_info);
 			break;
 		case CONTROLVM_BUS_DESTROY:
-			if (busdev_notifiers.bus_destroy) {
-				(*busdev_notifiers.bus_destroy) (bus_info);
-				goto out_unlock;
-			}
+			chipset_bus_destroy(bus_info);
 			break;
 		}
 	}
 
 out_respond_and_unlock:
 	bus_responder(cmd, pmsg_hdr, response);
-
-out_unlock:
-	up(&notifier_lock);
 }
 
 static void
@@ -982,7 +927,6 @@ device_epilog(struct visor_device *dev_info,
 
 	notifiers = &busdev_notifiers;
 
-	down(&notifier_lock);
 	if (!dev_info) {
 		/* relying on a valid passed in response code */
 		/* be lazy and re-use msg_hdr for this failure, is this ok?? */
@@ -1012,20 +956,14 @@ device_epilog(struct visor_device *dev_info,
 	if (response >= 0) {
 		switch (cmd) {
 		case CONTROLVM_DEVICE_CREATE:
-			if (notifiers->device_create) {
-				(*notifiers->device_create) (dev_info);
-				goto out_unlock;
-			}
+			chipset_device_create(dev_info);
 			break;
 		case CONTROLVM_DEVICE_CHANGESTATE:
 			/* ServerReady / ServerRunning / SegmentStateRunning */
 			if (state.alive == segment_state_running.alive &&
 			    state.operating ==
 				segment_state_running.operating) {
-				if (notifiers->device_resume) {
-					(*notifiers->device_resume) (dev_info);
-					goto out_unlock;
-				}
+				chipset_device_resume(dev_info);
 			}
 			/* ServerNotReady / ServerLost / SegmentStateStandby */
 			else if (state.alive == segment_state_standby.alive &&
@@ -1034,26 +972,17 @@ device_epilog(struct visor_device *dev_info,
 				/* technically this is standby case
 				 * where server is lost
 				 */
-				if (notifiers->device_pause) {
-					(*notifiers->device_pause) (dev_info);
-					goto out_unlock;
+				chipset_device_pause(dev_info);
 				}
-			}
 			break;
 		case CONTROLVM_DEVICE_DESTROY:
-			if (notifiers->device_destroy) {
-				(*notifiers->device_destroy) (dev_info);
-				goto out_unlock;
-			}
+			chipset_device_destroy(dev_info);
 			break;
 		}
 	}
 
 out_respond_and_unlock:
 	device_responder(cmd, pmsg_hdr, response);
-
-out_unlock:
-	up(&notifier_lock);
 }
 
 static void
@@ -1804,10 +1733,6 @@ controlvm_periodic_work(struct work_struct *work)
 	bool got_command = false;
 	bool handle_command_failed = false;
 
-	/* make sure visorbus server is registered for controlvm callbacks */
-	if (visorchipset_visorbusregwait && !visorbusregistered)
-		goto cleanup;
-
 	while (visorchannel_signalremove(controlvm_channel,
 					 CONTROLVM_QUEUE_RESPONSE,
 					 &inmsg))
@@ -1875,13 +1800,6 @@ setup_crash_devices_work_queue(struct work_struct *work)
 	struct controlvm_message msg;
 	u32 local_crash_msg_offset;
 	u16 local_crash_msg_count;
-
-	/* make sure visorbus is registered for controlvm callbacks */
-	if (visorchipset_visorbusregwait && !visorbusregistered) {
-		poll_jiffies = POLLJIFFIES_CONTROLVMCHANNEL_SLOW;
-		schedule_delayed_work(&periodic_controlvm_work, poll_jiffies);
-		return;
-	}
 
 	POSTCODE_LINUX_2(CRASH_DEV_ENTRY_PC, POSTCODE_SEVERITY_INFO);
 
@@ -1960,7 +1878,7 @@ setup_crash_devices_work_queue(struct work_struct *work)
 	POSTCODE_LINUX_2(CRASH_DEV_EXIT_PC, POSTCODE_SEVERITY_INFO);
 }
 
-static void
+void
 bus_create_response(struct visor_device *bus_info, int response)
 {
 	if (response >= 0)
@@ -1973,7 +1891,7 @@ bus_create_response(struct visor_device *bus_info, int response)
 	bus_info->pending_msg_hdr = NULL;
 }
 
-static void
+void
 bus_destroy_response(struct visor_device *bus_info, int response)
 {
 	bus_responder(CONTROLVM_BUS_DESTROY, bus_info->pending_msg_hdr,
@@ -1983,7 +1901,7 @@ bus_destroy_response(struct visor_device *bus_info, int response)
 	bus_info->pending_msg_hdr = NULL;
 }
 
-static void
+void
 device_create_response(struct visor_device *dev_info, int response)
 {
 	if (response >= 0)
@@ -1996,7 +1914,7 @@ device_create_response(struct visor_device *dev_info, int response)
 	dev_info->pending_msg_hdr = NULL;
 }
 
-static void
+void
 device_destroy_response(struct visor_device *dev_info, int response)
 {
 	device_responder(CONTROLVM_DEVICE_DESTROY, dev_info->pending_msg_hdr,
@@ -2006,7 +1924,7 @@ device_destroy_response(struct visor_device *dev_info, int response)
 	dev_info->pending_msg_hdr = NULL;
 }
 
-static void
+void
 visorchipset_device_pause_response(struct visor_device *dev_info,
 				   int response)
 {
@@ -2018,7 +1936,7 @@ visorchipset_device_pause_response(struct visor_device *dev_info,
 	dev_info->pending_msg_hdr = NULL;
 }
 
-static void
+void
 device_resume_response(struct visor_device *dev_info, int response)
 {
 	device_changestate_responder(CONTROLVM_DEVICE_CHANGESTATE,
@@ -2206,7 +2124,6 @@ visorchipset_init(struct acpi_device *acpi_device)
 	if (!addr)
 		goto error;
 
-	memset(&busdev_notifiers, 0, sizeof(busdev_notifiers));
 	memset(&controlvm_payload_info, 0, sizeof(controlvm_payload_info));
 
 	controlvm_channel = visorchannel_create_with_lock(addr, 0,
