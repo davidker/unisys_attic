@@ -616,48 +616,6 @@ visordriver_remove_device(struct device *xdev)
 	return 0;
 }
 
-/**
- * A particular type of visor driver calls this function to register
- * the driver.  The caller MUST fill in the following fields within the
- * #drv structure:
- *     name, version, owner, channel_types, probe, remove
- *
- * Here's how the whole Linux bus / driver / device model works.
- *
- * At system start-up, the visorbus kernel module is loaded, which registers
- * visorbus_type as a bus type, using bus_register().
- *
- * All kernel modules that support particular device types on a
- * visorbus bus are loaded.  Each of these kernel modules calls
- * visorbus_register_visor_driver() in their init functions, passing a
- * visor_driver struct.  visorbus_register_visor_driver() in turn calls
- * register_driver(&visor_driver.driver).  This .driver member is
- * initialized with generic methods (like probe), whose sole responsibility
- * is to act as a broker for the real methods, which are within the
- * visor_driver struct.  (This is the way the subclass behavior is
- * implemented, since visor_driver is essentially a subclass of the
- * generic driver.)  Whenever a driver_register() happens, core bus code in
- * the kernel does (see device_attach() in drivers/base/dd.c):
- *
- *     for each dev associated with the bus (the bus that driver is on) that
- *     does not yet have a driver
- *         if bus.match(dev,newdriver) == yes_matched  ** .match specified
- *                                                ** during bus_register().
- *             newdriver.probe(dev)  ** for visor drivers, this will call
- *                   ** the generic driver.probe implemented in visorbus.c,
- *                   ** which in turn calls the probe specified within the
- *                   ** struct visor_driver (which was specified by the
- *                   ** actual device driver as part of
- *                   ** visorbus_register_visor_driver()).
- *
- * The above dance also happens when a new device appears.
- * So the question is, how are devices created within the system?
- * Basically, just call device_add(dev).  See pci_bus_add_devices().
- * pci_scan_device() shows an example of how to build a device struct.  It
- * returns the newly-created struct to pci_scan_single_device(), who adds it
- * to the list of devices at PCIBUS.devices.  That list of devices is what
- * is traversed by pci_bus_add_devices().
- */
 int visorbus_register_visor_driver(struct visor_driver *drv)
 {
 	int rc = 0;
