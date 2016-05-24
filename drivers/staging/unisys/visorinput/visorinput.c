@@ -63,7 +63,7 @@ enum visorinput_device_type {
  */
 struct visorinput_devdata {
 	struct visor_device *dev;
-	struct rw_semaphore lock_visor_dev; /* lock for dev */
+	struct mutex lock_visor_dev; /* mutex to serialize dev */
 	struct input_dev *visorinput_dev;
 	bool paused;
 	unsigned int keycode_table_bytes; /* size of following array */
@@ -386,7 +386,7 @@ devdata_create(struct visor_device *dev, enum visorinput_device_type devtype)
 		break;
 	}
 
-	init_rwsem(&devdata->lock_visor_dev);
+	mutex_init(&devdata->lock_visor_dev);
 
 	return devdata;
 
@@ -438,10 +438,10 @@ visorinput_remove(struct visor_device *dev)
 	 * in visorinput_channel_interrupt()
 	 */
 
-	down_write(&devdata->lock_visor_dev);
+	mutex_lock(&devdata->lock_visor_dev);
 	dev_set_drvdata(&dev->device, NULL);
 	unregister_client_input(devdata->visorinput_dev);
-	up_write(&devdata->lock_visor_dev);
+	mutex_unlock(&devdata->lock_visor_dev);
 	kfree(devdata);
 }
 
@@ -529,7 +529,7 @@ visorinput_channel_interrupt(struct visor_device *dev)
 	if (!devdata)
 		return;
 
-	down_write(&devdata->lock_visor_dev);
+	mutex_lock(&devdata->lock_visor_dev);
 	if (devdata->paused) /* don't touch device/channel when paused */
 		goto out_locked;
 
@@ -612,7 +612,7 @@ visorinput_channel_interrupt(struct visor_device *dev)
 		}
 	}
 out_locked:
-	up_write(&devdata->lock_visor_dev);
+	mutex_unlock(&devdata->lock_visor_dev);
 }
 
 static int
@@ -627,7 +627,7 @@ visorinput_pause(struct visor_device *dev,
 		goto out;
 	}
 
-	down_write(&devdata->lock_visor_dev);
+	mutex_lock(&devdata->lock_visor_dev);
 	if (devdata->paused) {
 		rc = -EBUSY;
 		goto out_locked;
@@ -636,7 +636,7 @@ visorinput_pause(struct visor_device *dev,
 	complete_func(dev, 0);
 	rc = 0;
 out_locked:
-	up_write(&devdata->lock_visor_dev);
+	mutex_unlock(&devdata->lock_visor_dev);
 out:
 	return rc;
 }
@@ -652,7 +652,7 @@ visorinput_resume(struct visor_device *dev,
 		rc = -ENODEV;
 		goto out;
 	}
-	down_write(&devdata->lock_visor_dev);
+	mutex_lock(&devdata->lock_visor_dev);
 	if (!devdata->paused) {
 		rc = -EBUSY;
 		goto out_locked;
@@ -661,7 +661,7 @@ visorinput_resume(struct visor_device *dev,
 	complete_func(dev, 0);
 	rc = 0;
 out_locked:
-	up_write(&devdata->lock_visor_dev);
+	mutex_unlock(&devdata->lock_visor_dev);
 out:
 	return rc;
 }
