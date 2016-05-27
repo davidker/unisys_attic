@@ -534,8 +534,7 @@ dev_periodic_work(unsigned long __opaque)
 	struct visor_device *dev = (struct visor_device *)__opaque;
 	struct visor_driver *drv = to_visor_driver(dev->device.driver);
 
-	if (drv->channel_interrupt)
-		drv->channel_interrupt(dev);
+	drv->channel_interrupt(dev);
 }
 
 static void
@@ -701,6 +700,13 @@ EXPORT_SYMBOL_GPL(visorbus_write_channel);
 void
 visorbus_enable_channel_interrupts(struct visor_device *dev)
 {
+	struct visor_driver *drv = to_visor_driver(dev->device.driver);
+
+	if (!drv->channel_interrupt) {
+		dev_err(&dev->device, "%s no interrupt function!\n", __func__);
+		return;
+	}
+
 	if (dev->irq)
 		visorchannel_set_sig_features(dev->visorchannel,
 					      dev->recv_queue,
@@ -748,12 +754,8 @@ visorbus_isr(int irq, void *dev_id)
 	visorchannel_clear_sig_features(dev->visorchannel,
 					dev->recv_queue,
 					ULTRA_CHANNEL_ENABLE_INTS);
-	if (drv->channel_interrupt) {
-		drv->channel_interrupt(dev);
-		return IRQ_HANDLED;
-	}
-
-	return IRQ_NONE;
+	drv->channel_interrupt(dev);
+	return IRQ_HANDLED;
 }
 
 int visorbus_set_channel_features(struct visor_device *dev, u64 feature_bits)
