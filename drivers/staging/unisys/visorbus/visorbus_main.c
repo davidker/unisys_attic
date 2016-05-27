@@ -837,7 +837,7 @@ int visorbus_register_for_channel_interrupts(struct visor_device *dev,
 					    ULTRA_IO_DRIVER_DISABLES_INTS);
 	if (err) {
 		dev_err(&dev->device,
-			"%s failed to set ENALBES ints from chan (%d)\n",
+			"%s failed to set ENABLES ints from chan (%d)\n",
 			__func__, err);
 		goto stay_in_polling;
 	}
@@ -845,7 +845,7 @@ int visorbus_register_for_channel_interrupts(struct visor_device *dev,
 	err = visorbus_clear_channel_features(dev, ULTRA_IO_CHANNEL_IS_POLLING);
 	if (err) {
 		dev_err(&dev->device,
-			"%s failed to clear POOLING flag from chan (%d)\n",
+			"%s failed to clear POLLING flag from chan (%d)\n",
 			__func__, err);
 		goto stay_in_polling;
 	}
