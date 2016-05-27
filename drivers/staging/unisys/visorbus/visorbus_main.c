@@ -709,7 +709,7 @@ visorbus_enable_channel_interrupts(struct visor_device *dev)
 
 	if (dev->irq)
 		visorchannel_set_sig_features(dev->visorchannel,
-					      dev->recv_queue,
+					      dev->interrupt_recv_queue,
 					      ULTRA_CHANNEL_ENABLE_INTS);
 	else
 		dev_start_periodic_work(dev);
@@ -721,7 +721,7 @@ visorbus_disable_channel_interrupts(struct visor_device *dev)
 {
 	if (dev->irq)
 		visorchannel_clear_sig_features(dev->visorchannel,
-						dev->recv_queue,
+						dev->interrupt_recv_queue,
 						ULTRA_CHANNEL_ENABLE_INTS);
 	else
 		dev_stop_periodic_work(dev);
@@ -733,7 +733,7 @@ visorbus_rearm_channel_interrupts(struct visor_device *dev)
 {
 	if (dev->irq)
 		visorchannel_set_sig_features(dev->visorchannel,
-					      dev->recv_queue,
+					      dev->interrupt_recv_queue,
 					      ULTRA_CHANNEL_ENABLE_INTS);
 	else
 		mod_timer(&dev->timer, jiffies + POLLJIFFIES_NORMALCHANNEL);
@@ -752,7 +752,7 @@ visorbus_isr(int irq, void *dev_id)
 	 * can send another one.
 	 */
 	visorchannel_clear_sig_features(dev->visorchannel,
-					dev->recv_queue,
+					dev->interrupt_recv_queue,
 					ULTRA_CHANNEL_ENABLE_INTS);
 	drv->channel_interrupt(dev);
 	return IRQ_HANDLED;
@@ -851,7 +851,7 @@ int visorbus_register_for_channel_interrupts(struct visor_device *dev,
 	}
 
 	dev->wait_ms = 2000;
-	dev->recv_queue = queue;
+	dev->interrupt_recv_queue = queue;
 	return 0;
 
 stay_in_polling:

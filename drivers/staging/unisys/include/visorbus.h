@@ -171,7 +171,7 @@ struct visor_device {
 	uuid_le partition_uuid;
 	int irq;
 	int wait_ms;
-	int recv_queue;		/* specifies which queue to receive msgs on */
+	int interrupt_recv_queue; /* queue to recv msgs on w/ irq interrupts */
 	bool timer_active;
 	bool being_removed;
 	bool pausing;
