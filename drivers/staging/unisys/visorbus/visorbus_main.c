@@ -697,6 +697,9 @@ visorbus_write_channel(struct visor_device *dev, unsigned long offset,
 }
 EXPORT_SYMBOL_GPL(visorbus_write_channel);
 
+static int visorbus_request_irq(struct visor_device *dev);
+static void visorbus_free_irq(struct visor_device *dev);
+
 void
 visorbus_enable_channel_interrupts(struct visor_device *dev)
 {
@@ -706,12 +709,9 @@ visorbus_enable_channel_interrupts(struct visor_device *dev)
 		dev_err(&dev->device, "%s no interrupt function!\n", __func__);
 		return;
 	}
-
-	if (dev->irq_mode)
-		visorchannel_set_sig_features(dev->visorchannel,
-					      dev->recv_queue,
-					      ULTRA_CHANNEL_ENABLE_INTS);
-	else
+	if (dev->irq_mode_desired)
+		visorbus_request_irq(dev);
+	if (!dev->request_irq_done)
 		dev_start_periodic_work(dev);
 }
 EXPORT_SYMBOL_GPL(visorbus_enable_channel_interrupts);
@@ -719,10 +719,8 @@ EXPORT_SYMBOL_GPL(visorbus_enable_channel_interrupts);
 void
 visorbus_disable_channel_interrupts(struct visor_device *dev)
 {
-	if (dev->irq_mode)
-		visorchannel_clear_sig_features(dev->visorchannel,
-						dev->recv_queue,
-						ULTRA_CHANNEL_ENABLE_INTS);
+	if (dev->request_irq_done)
+		visorbus_free_irq(dev);
 	else
 		dev_stop_periodic_work(dev);
 }
@@ -731,7 +729,7 @@ EXPORT_SYMBOL_GPL(visorbus_disable_channel_interrupts);
 void
 visorbus_rearm_channel_interrupts(struct visor_device *dev)
 {
-	if (dev->irq_mode)
+	if (dev->request_irq_done)
 		visorchannel_set_sig_features(dev->visorchannel,
 					      dev->recv_queue,
 					      ULTRA_CHANNEL_ENABLE_INTS);
@@ -813,14 +811,12 @@ int visorbus_clear_channel_features(struct visor_device *dev, u64 feature_bits)
 	return err;
 }
 
-#define INTERRUPT_VECTOR_MASK 0x3f
-int visorbus_register_for_channel_interrupts(struct visor_device *dev,
-					     u32 queue)
+static int visorbus_request_irq(struct visor_device *dev)
 {
 	int err = 0;
 
-	if (!dev->irq)
-		goto err_stay_in_polling;
+	if (dev->request_irq_done)
+		return 0;
 
 	err = request_irq(dev->irq, visorbus_isr, IRQF_SHARED,
 			  dev_name(&dev->device), dev);
@@ -830,8 +826,9 @@ int visorbus_register_for_channel_interrupts(struct visor_device *dev,
 			dev->irq, err);
 		goto err_stay_in_polling;
 	}
+	dev->request_irq_done = true;
 
-	dev_info(&dev->device, "IRQ=%d registered\n", dev->irq);
+	dev_dbg(&dev->device, "IRQ=%d registered\n", dev->irq);
 
 	err = visorbus_set_channel_features(dev, ULTRA_IO_DRIVER_ENABLES_INTS |
 					    ULTRA_IO_DRIVER_DISABLES_INTS);
@@ -850,17 +847,43 @@ int visorbus_register_for_channel_interrupts(struct visor_device *dev,
 		goto err_free_irq;
 	}
 
-	dev->wait_ms = 2000;
-	dev->irq_mode = true;
-	dev->recv_queue = queue;
+	visorchannel_set_sig_features(dev->visorchannel, dev->recv_queue,
+				      ULTRA_CHANNEL_ENABLE_INTS);
+
 	return 0;
 
 err_free_irq:
 	free_irq(dev->irq, dev);
+	dev->request_irq_done = false;
 
 err_stay_in_polling:
-	dev->irq_mode = false;
 	return err;
+}
+
+static void visorbus_free_irq(struct visor_device *dev)
+{
+	visorchannel_clear_sig_features(dev->visorchannel,
+					dev->recv_queue,
+					ULTRA_CHANNEL_ENABLE_INTS);
+	if (!dev->request_irq_done)
+		return;
+	free_irq(dev->irq, dev);
+	dev_dbg(&dev->device, "IRQ=%d unregistered\n", dev->irq);
+	dev->request_irq_done = false;
+}
+
+int visorbus_register_for_channel_interrupts(struct visor_device *dev,
+					     u32 queue)
+{
+	if (!dev->irq) {
+		dev_dbg(&dev->device, "interrupts requested, but no irq\n");
+		dev->irq_mode_desired = false;
+		return -ENOENT;
+	}
+	dev->irq_mode_desired = true;
+	dev->recv_queue = queue;
+	dev->wait_ms = 2000;
+	return 0;
 }
 EXPORT_SYMBOL_GPL(visorbus_register_for_channel_interrupts);
 

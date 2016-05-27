@@ -176,7 +176,8 @@ struct visor_device {
 	bool being_removed;
 	bool pausing;
 	bool resuming;
-	bool irq_mode;
+	bool irq_mode_desired;
+	bool request_irq_done;
 };
 
 #define to_visor_device(x) container_of(x, struct visor_device, device)
