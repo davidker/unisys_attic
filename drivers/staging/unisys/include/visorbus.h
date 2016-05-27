@@ -179,6 +179,7 @@ struct visor_device {
 };
 
 #define to_visor_device(x) container_of(x, struct visor_device, device)
+#define VISORBUS_IRQ_INTERRUPTS_ENABLED(dev) (dev->interrupt_recv_queue >= 0)
 
 /**
  * visorbus_register_visor_driver() - registers the provided driver

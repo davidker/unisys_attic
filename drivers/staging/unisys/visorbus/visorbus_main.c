@@ -707,7 +707,7 @@ visorbus_enable_channel_interrupts(struct visor_device *dev)
 		return;
 	}
 
-	if (dev->irq)
+	if (VISORBUS_IRQ_INTERRUPTS_ENABLED(dev))
 		visorchannel_set_sig_features(dev->visorchannel,
 					      dev->interrupt_recv_queue,
 					      ULTRA_CHANNEL_ENABLE_INTS);
@@ -719,7 +719,7 @@ EXPORT_SYMBOL_GPL(visorbus_enable_channel_interrupts);
 void
 visorbus_disable_channel_interrupts(struct visor_device *dev)
 {
-	if (dev->irq)
+	if (VISORBUS_IRQ_INTERRUPTS_ENABLED(dev))
 		visorchannel_clear_sig_features(dev->visorchannel,
 						dev->interrupt_recv_queue,
 						ULTRA_CHANNEL_ENABLE_INTS);
@@ -731,7 +731,7 @@ EXPORT_SYMBOL_GPL(visorbus_disable_channel_interrupts);
 void
 visorbus_rearm_channel_interrupts(struct visor_device *dev)
 {
-	if (dev->irq)
+	if (VISORBUS_IRQ_INTERRUPTS_ENABLED(dev))
 		visorchannel_set_sig_features(dev->visorchannel,
 					      dev->interrupt_recv_queue,
 					      ULTRA_CHANNEL_ENABLE_INTS);
@@ -820,7 +820,7 @@ int visorbus_register_for_channel_interrupts(struct visor_device *dev,
 	int err = 0;
 
 	if (!dev->irq)
-		goto stay_in_polling;
+		goto err_stay_in_polling;
 
 	err = request_irq(dev->irq, visorbus_isr, IRQF_SHARED,
 			  dev_name(&dev->device), dev);
@@ -828,7 +828,7 @@ int visorbus_register_for_channel_interrupts(struct visor_device *dev,
 		dev_err(&dev->device,
 			"failed to request irq %d continuing to poll. err = %d",
 			dev->irq, err);
-		goto stay_in_polling;
+		goto err_stay_in_polling;
 	}
 
 	dev_info(&dev->device, "IRQ=%d registered\n", dev->irq);
@@ -839,7 +839,7 @@ int visorbus_register_for_channel_interrupts(struct visor_device *dev,
 		dev_err(&dev->device,
 			"%s failed to set ENABLES ints from chan (%d)\n",
 			__func__, err);
-		goto stay_in_polling;
+		goto err_free_irq;
 	}
 
 	err = visorbus_clear_channel_features(dev, ULTRA_IO_CHANNEL_IS_POLLING);
@@ -847,15 +847,22 @@ int visorbus_register_for_channel_interrupts(struct visor_device *dev,
 		dev_err(&dev->device,
 			"%s failed to clear POLLING flag from chan (%d)\n",
 			__func__, err);
-		goto stay_in_polling;
+		goto err_free_irq;
 	}
 
 	dev->wait_ms = 2000;
 	dev->interrupt_recv_queue = queue;
 	return 0;
 
-stay_in_polling:
-	dev->irq = 0;
+	/*
+	 * for error cases, we leave interrupt_recv_queue at -1, meaning
+	 * request_irq() has not happened
+	 */
+
+err_free_irq:
+	free_irq(dev->irq, dev);
+
+err_stay_in_polling:
 	return err;
 }
 EXPORT_SYMBOL_GPL(visorbus_register_for_channel_interrupts);
@@ -917,6 +924,7 @@ create_visor_device(struct visor_device *dev)
 		goto err_put;
 	}
 	dev->wait_ms = 2;
+	dev->interrupt_recv_queue = -1; /* indicates no irq recv queue yet */
 
 	/*  device_add does this:
 	 *    bus_add_device(dev)
