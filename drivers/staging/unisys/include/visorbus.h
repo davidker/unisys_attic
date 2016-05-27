@@ -159,12 +159,8 @@ struct visor_device {
 	struct device device;
 	struct list_head list_all;
 	struct timer_list timer;
-	bool timer_active;
-	bool being_removed;
 	/* mutex to serialize visor_driver function callbacks */
 	struct mutex visordriver_callback_lock;
-	bool pausing;
-	bool resuming;
 	u32 chipset_bus_no;
 	u32 chipset_dev_no;
 	struct visorchipset_state state;
@@ -176,6 +172,10 @@ struct visor_device {
 	int irq;
 	int wait_ms;
 	int recv_queue;		/* specifies which queue to receive msgs on */
+	bool timer_active;
+	bool being_removed;
+	bool pausing;
+	bool resuming;
 };
 
 #define to_visor_device(x) container_of(x, struct visor_device, device)
