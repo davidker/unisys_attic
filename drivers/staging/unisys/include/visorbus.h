@@ -170,6 +170,7 @@ struct visor_device {
 	void *vbus_hdr_info;
 	uuid_le partition_uuid;
 	int irq;
+	u32 gsi_vector;
 	int wait_ms;
 	int recv_queue;		/* specifies which queue to receive msgs on */
 	bool timer_active;

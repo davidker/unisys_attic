@@ -1045,6 +1045,10 @@ device_epilog(struct visor_device *dev_info,
 				(*notifiers->device_destroy) (dev_info);
 				goto out_unlock;
 			}
+			if ((dev_info->gsi_vector > 0) &&
+			    (dev_info->irq > 0)) {
+				acpi_unregister_gsi(dev_info->gsi_vector);
+			}
 			break;
 		}
 	}
@@ -1183,7 +1187,6 @@ my_device_create(struct controlvm_message *inmsg)
 	struct visor_device *bus_info;
 	struct visorchannel *visorchannel;
 	int rc = CONTROLVM_RESP_SUCCESS;
-	int gsi_vector;
 
 	bus_info = visorbus_get_device_by_id(bus_no, BUS_ROOT_DEVICE, NULL);
 	if (!bus_info) {
@@ -1222,15 +1225,16 @@ my_device_create(struct controlvm_message *inmsg)
 	dev_info->chipset_dev_no = dev_no;
 	dev_info->inst = cmd->create_device.dev_inst_uuid;
 
-	gsi_vector = cmd->create_device.intr.recv_irq_handle;
-	if (gsi_vector > 0) {
-		dev_info->irq = acpi_register_gsi(&dev_info->device, gsi_vector,
+	dev_info->gsi_vector = cmd->create_device.intr.recv_irq_handle;
+	if (dev_info->gsi_vector > 0) {
+		dev_info->irq = acpi_register_gsi(&dev_info->device,
+						  dev_info->gsi_vector,
 						  ACPI_LEVEL_SENSITIVE,
 						  ACPI_ACTIVE_LOW);
 		if (dev_info->irq < 0) {
 			dev_err(&dev_info->device,
 				"Error registering gsi number: %d (%d)",
-				gsi_vector, dev_info->irq);
+				dev_info->gsi_vector, dev_info->irq);
 			dev_info->irq = 0;
 		}
 	}
@@ -1245,6 +1249,8 @@ my_device_create(struct controlvm_message *inmsg)
 					     cmd->create_device.data_type_uuid);
 
 	if (!visorchannel) {
+		if ((dev_info->gsi_vector > 0) && (dev_info->irq > 0))
+			acpi_unregister_gsi(dev_info->gsi_vector);
 		POSTCODE_LINUX_4(DEVICE_CREATE_FAILURE_PC, dev_no, bus_no,
 				 POSTCODE_SEVERITY_ERR);
 		rc = -CONTROLVM_RESP_ERROR_KMALLOC_FAILED;
