@@ -205,24 +205,6 @@ static void parahotplug_process_list(void);
  */
 static struct visorchipset_busdev_notifiers busdev_notifiers;
 
-static void bus_create_response(struct visor_device *p, int response);
-static void bus_destroy_response(struct visor_device *p, int response);
-static void device_create_response(struct visor_device *p, int response);
-static void device_destroy_response(struct visor_device *p, int response);
-static void device_resume_response(struct visor_device *p, int response);
-
-static void visorchipset_device_pause_response(struct visor_device *p,
-					       int response);
-
-static struct visorchipset_busdev_responders busdev_responders = {
-	.bus_create = bus_create_response,
-	.bus_destroy = bus_destroy_response,
-	.device_create = device_create_response,
-	.device_destroy = device_destroy_response,
-	.device_pause = visorchipset_device_pause_response,
-	.device_resume = device_resume_response,
-};
-
 /* info for /dev/visorchipset */
 static dev_t major_dev = -1; /**< indicates major num for device */
 
@@ -1896,7 +1878,7 @@ setup_crash_devices_work_queue(struct work_struct *work)
 	POSTCODE_LINUX_2(CRASH_DEV_EXIT_PC, POSTCODE_SEVERITY_INFO);
 }
 
-static void
+void
 bus_create_response(struct visor_device *bus_info, int response)
 {
 	if (response >= 0)
@@ -1909,7 +1891,7 @@ bus_create_response(struct visor_device *bus_info, int response)
 	bus_info->pending_msg_hdr = NULL;
 }
 
-static void
+void
 bus_destroy_response(struct visor_device *bus_info, int response)
 {
 	bus_responder(CONTROLVM_BUS_DESTROY, bus_info->pending_msg_hdr,
@@ -1919,7 +1901,7 @@ bus_destroy_response(struct visor_device *bus_info, int response)
 	bus_info->pending_msg_hdr = NULL;
 }
 
-static void
+void
 device_create_response(struct visor_device *dev_info, int response)
 {
 	if (response >= 0)
@@ -1932,7 +1914,7 @@ device_create_response(struct visor_device *dev_info, int response)
 	dev_info->pending_msg_hdr = NULL;
 }
 
-static void
+void
 device_destroy_response(struct visor_device *dev_info, int response)
 {
 	device_responder(CONTROLVM_DEVICE_DESTROY, dev_info->pending_msg_hdr,
@@ -1942,7 +1924,7 @@ device_destroy_response(struct visor_device *dev_info, int response)
 	dev_info->pending_msg_hdr = NULL;
 }
 
-static void
+void
 visorchipset_device_pause_response(struct visor_device *dev_info,
 				   int response)
 {
@@ -1954,7 +1936,7 @@ visorchipset_device_pause_response(struct visor_device *dev_info,
 	dev_info->pending_msg_hdr = NULL;
 }
 
-static void
+void
 device_resume_response(struct visor_device *dev_info, int response)
 {
 	device_changestate_responder(CONTROLVM_DEVICE_CHANGESTATE,

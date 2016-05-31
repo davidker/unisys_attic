@@ -30,20 +30,13 @@ void chipset_device_destroy(struct visor_device *dev_info);
 void chipset_device_pause(struct visor_device *dev_info);
 void chipset_device_resume(struct visor_device *dev_info);
 
-/*  These functions live inside visorchipset, and will be called to indicate
- *  responses to specific events (by code outside of visorchipset).
- *  For now, the value for each response is simply either:
- *       0 = it worked
- *      -1 = it failed
- */
-struct visorchipset_busdev_responders {
-	void (*bus_create)(struct visor_device *p, int response);
-	void (*bus_destroy)(struct visor_device *p, int response);
-	void (*device_create)(struct visor_device *p, int response);
-	void (*device_destroy)(struct visor_device *p, int response);
-	void (*device_pause)(struct visor_device *p, int response);
-	void (*device_resume)(struct visor_device *p, int response);
-};
+void bus_create_response(struct visor_device *p, int response);
+void bus_destroy_response(struct visor_device *p, int response);
+void device_create_response(struct visor_device *p, int response);
+void device_destroy_response(struct visor_device *p, int response);
+void device_resume_response(struct visor_device *p, int response);
+void visorchipset_device_pause_response(struct visor_device *p,
+					int response);
 
 /* visorbus init and exit functions */
 int visorbus_init(void);

@@ -118,11 +118,6 @@ struct bus_type visorbus_type = {
 static long long bus_count;	/** number of bus instances */
 					/** ever-increasing */
 
-/** These functions are implemented in the chipset driver, and we call them
- *  herein when we want to acknowledge a specific event.
- */
-static struct visorchipset_busdev_responders chipset_responders;
-
 /* filled in with info about parent chipset driver when we register with it */
 static struct ultra_vbus_deviceinfo chipset_driverinfo;
 /* filled in with info about this driver, wrt it servicing client busses */
@@ -1016,16 +1011,14 @@ chipset_bus_create(struct visor_device *dev)
 		POSTCODE_LINUX_3(CHIPSET_INIT_SUCCESS_PC, bus_no,
 				 POSTCODE_SEVERITY_INFO);
 
-	if (chipset_responders.bus_create)
-		(*chipset_responders.bus_create) (dev, rc);
+	bus_create_response(dev, rc);
 }
 
 void
 chipset_bus_destroy(struct visor_device *dev)
 {
 	remove_bus_instance(dev);
-	if (chipset_responders.bus_destroy)
-		(*chipset_responders.bus_destroy)(dev, 0);
+	bus_destroy_response(dev, 0);
 }
 
 void
@@ -1039,8 +1032,7 @@ chipset_device_create(struct visor_device *dev_info)
 			 POSTCODE_SEVERITY_INFO);
 
 	rc = create_visor_device(dev_info);
-	if (chipset_responders.device_create)
-		chipset_responders.device_create(dev_info, rc);
+	device_create_response(dev_info, rc);
 
 	if (rc < 0)
 		POSTCODE_LINUX_4(DEVICE_CREATE_FAILURE_PC, dev_no, bus_no,
@@ -1055,8 +1047,7 @@ chipset_device_destroy(struct visor_device *dev_info)
 {
 	remove_visor_device(dev_info);
 
-	if (chipset_responders.device_destroy)
-		(*chipset_responders.device_destroy) (dev_info, 0);
+	device_destroy_response(dev_info, 0);
 }
 
 /**
@@ -1071,14 +1062,8 @@ pause_state_change_complete(struct visor_device *dev, int status)
 		return;
 
 	dev->pausing = false;
-	if (!chipset_responders.device_pause) /* this can never happen! */
-		return;
 
-	/* Notify the chipset driver that the pause is complete, which
-	 * will presumably want to send some sort of response to the
-	 * initiator.
-	 */
-	(*chipset_responders.device_pause) (dev, status);
+	visorchipset_device_pause_response(dev, status);
 }
 
 /**
@@ -1093,14 +1078,12 @@ resume_state_change_complete(struct visor_device *dev, int status)
 		return;
 
 	dev->resuming = false;
-	if (!chipset_responders.device_resume) /* this can never happen! */
-		return;
 
 	/* Notify the chipset driver that the resume is complete,
 	 * which will presumably want to send some sort of response to
 	 * the initiator.
 	 */
-	(*chipset_responders.device_resume) (dev, status);
+	device_resume_response(dev, status);
 }
 
 /**
@@ -1116,9 +1099,9 @@ initiate_chipset_device_pause_resume(struct visor_device *dev, bool is_pause)
 	void (*notify_func)(struct visor_device *dev, int response) = NULL;
 
 	if (is_pause)
-		notify_func = chipset_responders.device_pause;
+		notify_func = visorchipset_device_pause_response;
 	else
-		notify_func = chipset_responders.device_resume;
+		notify_func = device_resume_response;
 	if (!notify_func)
 		return;
 
