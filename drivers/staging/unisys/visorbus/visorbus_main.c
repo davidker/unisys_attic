@@ -1063,7 +1063,7 @@ pause_state_change_complete(struct visor_device *dev, int status)
 
 	dev->pausing = false;
 
-	visorchipset_device_pause_response(dev, status);
+	device_pause_response(dev, status);
 }
 
 /**
@@ -1099,7 +1099,7 @@ initiate_chipset_device_pause_resume(struct visor_device *dev, bool is_pause)
 	void (*notify_func)(struct visor_device *dev, int response) = NULL;
 
 	if (is_pause)
-		notify_func = visorchipset_device_pause_response;
+		notify_func = device_pause_response;
 	else
 		notify_func = device_resume_response;
 	if (!notify_func)
