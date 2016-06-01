@@ -56,7 +56,7 @@ struct visorchannel {
 	uuid_le inst;
 };
 
-/**
+/*
  * Creates the struct visorchannel abstraction for a data area in memory,
  * but does NOT modify this data area.
  */
@@ -263,22 +263,22 @@ visorchannel_get_header(struct visorchannel *channel)
 	return (void __iomem *)&channel->chan_hdr;
 }
 
-/** Return offset of a specific SIGNAL_QUEUE_HEADER from the beginning of a
- *  channel header
+/* Return offset of a specific SIGNAL_QUEUE_HEADER from the beginning of a
+ * channel header
  */
 #define SIG_QUEUE_OFFSET(chan_hdr, q) \
 	((chan_hdr)->ch_space_offset + \
 	 ((q) * sizeof(struct signal_queue_header)))
 
-/** Return offset of a specific queue entry (data) from the beginning of a
- *  channel header
+/* Return offset of a specific queue entry (data) from the beginning of a
+ * channel header
  */
 #define SIG_DATA_OFFSET(chan_hdr, q, sig_hdr, slot) \
 	(SIG_QUEUE_OFFSET(chan_hdr, q) + (sig_hdr)->sig_base_offset + \
 	    ((slot) * (sig_hdr)->signal_size))
 
-/** Write the contents of a specific field within a SIGNAL_QUEUE_HEADER back
- *  into host memory
+/* Write the contents of a specific field within a SIGNAL_QUEUE_HEADER back
+ * into host memory
  */
 #define SIG_WRITE_FIELD(channel, queue, sig_hdr, FIELD)			 \
 	(visorchannel_write(channel,					 \
