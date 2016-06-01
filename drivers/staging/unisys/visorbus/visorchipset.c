@@ -226,7 +226,7 @@ static struct visorchipset_busdev_responders busdev_responders = {
 };
 
 /* info for /dev/visorchipset */
-static dev_t major_dev = -1; /**< indicates major num for device */
+static dev_t major_dev = -1; /*< indicates major num for device */
 
 /* prototypes for attributes */
 static ssize_t toolaction_show(struct device *dev,
@@ -396,7 +396,7 @@ parser_id_get(struct parser_context *ctx)
 	return phdr->id;
 }
 
-/** Describes the state from the perspective of which controlvm messages have
+/* Describes the state from the perspective of which controlvm messages have
  *  been received for a bus or device.
  */
 
@@ -1300,7 +1300,7 @@ my_device_destroy(struct controlvm_message *inmsg)
 			      inmsg->hdr.flags.response_expected == 1, 1);
 }
 
-/**
+/*
  * When provided with the physical address of the controlvm channel
  * (phys_addr), the offset to the payload area we need to manage
  * (offset), and the size of this payload area (bytes), fills in the
@@ -1369,7 +1369,7 @@ initialize_controlvm_payload(void)
 					  &controlvm_payload_info);
 }
 
-/**
+/*
  * Send ACTION=online for DEVPATH=/sys/devices/platform/visorchipset.
  * Returns CONTROLVM_RESP_xxx code.
  */
@@ -1392,7 +1392,7 @@ visorchipset_chipset_selftest(void)
 	return CONTROLVM_RESP_SUCCESS;
 }
 
-/**
+/*
  * Send ACTION=offline for DEVPATH=/sys/devices/platform/visorchipset.
  * Returns CONTROLVM_RESP_xxx code.
  */
@@ -1436,7 +1436,7 @@ chipset_notready(struct controlvm_message_header *msg_hdr)
 		controlvm_respond(msg_hdr, rc);
 }
 
-/**
+/*
  * This is your "one-stop" shop for grabbing the next message from the
  * CONTROLVM_QUEUE_EVENT queue in the controlvm channel.
  */
@@ -1468,7 +1468,7 @@ read_controlvm_event(struct controlvm_message *msg)
 
 #define PARAHOTPLUG_TIMEOUT_MS 2000
 
-/**
+/*
  * Generate unique int to match an outstanding CONTROLVM message with a
  * udev script /proc response
  */
@@ -1480,7 +1480,7 @@ parahotplug_next_id(void)
 	return atomic_inc_return(&id);
 }
 
-/**
+/*
  * Returns the time (in jiffies) when a CONTROLVM message on the list
  * should expire -- PARAHOTPLUG_TIMEOUT_MS in the future
  */
@@ -1490,7 +1490,7 @@ parahotplug_next_expiration(void)
 	return jiffies + msecs_to_jiffies(PARAHOTPLUG_TIMEOUT_MS);
 }
 
-/**
+/*
  * Create a parahotplug_request, which is basically a wrapper for a
  * CONTROLVM_MESSAGE that we can stick on a list
  */
@@ -1510,7 +1510,7 @@ parahotplug_request_create(struct controlvm_message *msg)
 	return req;
 }
 
-/**
+/*
  * Free a parahotplug_request.
  */
 static void
@@ -1519,7 +1519,7 @@ parahotplug_request_destroy(struct parahotplug_request *req)
 	kfree(req);
 }
 
-/**
+/*
  * Cause uevent to run the user level script to do the disable/enable
  * specified in (the CONTROLVM message in) the specified
  * parahotplug_request
@@ -1549,7 +1549,7 @@ parahotplug_request_kickoff(struct parahotplug_request *req)
 			   envp);
 }
 
-/**
+/*
  * Remove any request from the list that's been on there too long and
  * respond with an error.
  */
@@ -1580,7 +1580,7 @@ parahotplug_process_list(void)
 	spin_unlock(&parahotplug_request_list_lock);
 }
 
-/**
+/*
  * Called from the /proc handler, which means the user script has
  * finished the enable/disable.  Find the matching identifier, and
  * respond to the CONTROLVM message with success.
@@ -1617,7 +1617,7 @@ parahotplug_request_complete(int id, u16 active)
 	return -EINVAL;
 }
 
-/**
+/*
  * Enables or disables a PCI device by kicking off a udev script
  */
 static void
@@ -1660,7 +1660,7 @@ parahotplug_process_message(struct controlvm_message *inmsg)
 	}
 }
 
-/**
+/*
  * Process a controlvm message.
  * Return result:
  *    false - this function will return false only in the case where the
@@ -2029,7 +2029,7 @@ device_resume_response(struct visor_device *dev_info, int response)
 	dev_info->pending_msg_hdr = NULL;
 }
 
-/**
+/*
  * The parahotplug/devicedisabled interface gets called by our support script
  * when an SR-IOV device has been shut down. The ID is passed to the script
  * and then passed back when the device has been removed.
@@ -2047,7 +2047,7 @@ static ssize_t devicedisabled_store(struct device *dev,
 	return count;
 }
 
-/**
+/*
  * The parahotplug/deviceenabled interface gets called by our support script
  * when an SR-IOV device has been recovered. The ID is passed to the script
  * and then passed back when the device has been brought back up.
