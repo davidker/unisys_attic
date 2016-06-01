@@ -322,6 +322,32 @@ enum event_pc {			/* POSTCODE event identifier tuples */
 };
 
 /**
+ * visorbus_log_postcode() - logs a 64-bit value comprised of the inputs
+ *                           to the Unisys hypervisor log file
+ * @file: a unique 8-bit value representing the file
+ * @event: a unique 12-bit value representing the event to log
+ * @line: the line of the postcode call
+ * @info_high: 16 bits of data to log
+ * @info_low: 16 bits of data to log
+ * @severity: the Unisys hypervisor log severity level of the postcode
+ *
+ * visorbus_log_postcode generates a value in the form 0xAABBBCCCDDDDEEEE where
+ *	A is file
+ *	B is event
+ *	C is line
+ *	D is info_high
+ *	E is info_low
+ * Please also note that the resulting postcode is in hex, so if you are
+ * searching for the __LINE__ number, convert it first to decimal.  The line
+ * number combined with driver and type of call, will allow you to track down
+ * exactly what line an error occurred on, or where the last driver
+ * entered/exited from.
+ */
+void visorbus_log_postcode(enum driver_pc file, enum event_pc event, u16 line,
+			   u16 info_high, u16 info_low,
+			   enum diag_severity severity);
+
+/**
  * visorchannel_signalremove() - removes a message from the designated
  *                               channel/queue
  * @channel: the channel the message will be removed from

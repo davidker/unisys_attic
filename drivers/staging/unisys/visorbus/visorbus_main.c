@@ -697,6 +697,21 @@ visorbus_disable_channel_interrupts(struct visor_device *dev)
 }
 EXPORT_SYMBOL_GPL(visorbus_disable_channel_interrupts);
 
+void
+visorbus_log_postcode(enum driver_pc file, enum event_pc event, u16 line,
+		      u16 info_high, u16 info_low, enum diag_severity severity)
+{
+	u64 postcode;
+
+	postcode = (((u64)file) << 56) |
+		(((u64)event) << 44) |
+		((((u64)line) & 0xFFF) << 32) |
+		((((u64)info_high) & 0xFFFF) << 16) |
+		(((u64)info_low) & 0xFFFF);
+	ISSUE_IO_VMCALL_POSTCODE_SEVERITY(postcode, severity);
+}
+EXPORT_SYMBOL_GPL(visorbus_log_postcode);
+
 /**
  * This is how everything starts from the device end.
  * This function is called when a channel first appears via a ControlVM
