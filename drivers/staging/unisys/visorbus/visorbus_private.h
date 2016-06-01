@@ -51,7 +51,7 @@ struct visorchipset_busdev_responders {
 	void (*device_resume)(struct visor_device *p, int response);
 };
 
-/**
+/*
  * Register functions (in the bus driver) to get called by visorchipset
  * whenever a bus or device appears for which this guest is to be the
  * client for.  visorchipset will fill in <responders>, to indicate
