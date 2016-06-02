@@ -20,7 +20,6 @@
 #include "visorbus_private.h"
 #include "version.h"
 #include "vbuschannel.h"
-#include "guestlinuxdebug.h"
 #include "vmcallinterface.h"
 
 #define MYDRVNAME "visorbus"
@@ -736,8 +735,9 @@ create_visor_device(struct visor_device *dev)
 	u32 chipset_bus_no = dev->chipset_bus_no;
 	u32 chipset_dev_no = dev->chipset_dev_no;
 
-	POSTCODE_LINUX(DEVICE_CREATE_ENTRY_PC, chipset_dev_no, chipset_bus_no,
-		       DIAG_SEVERITY_PRINT);
+	visorbus_log_postcode(CURRENT_FILE_PC, DEVICE_CREATE_ENTRY_PC, __LINE__,
+			      chipset_dev_no, chipset_bus_no,
+			      DIAG_SEVERITY_PRINT);
 
 	mutex_init(&dev->visordriver_callback_lock);
 	dev->device.bus = &visorbus_type;
@@ -775,8 +775,8 @@ create_visor_device(struct visor_device *dev)
 	 */
 	err = device_add(&dev->device);
 	if (err < 0) {
-		POSTCODE_LINUX(DEVICE_ADD_PC, 0, chipset_bus_no,
-			       DIAG_SEVERITY_ERR);
+		visorbus_log_postcode(CURRENT_FILE_PC, DEVICE_ADD_PC, __LINE__,
+				      0, chipset_bus_no, DIAG_SEVERITY_ERR);
 		goto err_put;
 	}
 
@@ -943,7 +943,8 @@ create_bus_instance(struct visor_device *dev)
 	int id = dev->chipset_bus_no;
 	struct spar_vbus_headerinfo *hdr_info;
 
-	POSTCODE_LINUX(BUS_CREATE_ENTRY_PC, 0, 0, DIAG_SEVERITY_PRINT);
+	visorbus_log_postcode(CURRENT_FILE_PC, BUS_CREATE_ENTRY_PC, __LINE__,
+			      0, 0, DIAG_SEVERITY_PRINT);
 
 	hdr_info = kzalloc(sizeof(*hdr_info), GFP_KERNEL);
 	if (!hdr_info)
@@ -955,8 +956,8 @@ create_bus_instance(struct visor_device *dev)
 	dev->device.release = visorbus_release_busdevice;
 
 	if (device_register(&dev->device) < 0) {
-		POSTCODE_LINUX(DEVICE_CREATE_FAILURE_PC, 0, id,
-			       DIAG_SEVERITY_ERR);
+		visorbus_log_postcode(CURRENT_FILE_PC, DEVICE_CREATE_FAILURE_PC,
+				      __LINE__, 0, id, DIAG_SEVERITY_ERR);
 		kfree(hdr_info);
 		return -ENODEV;
 	}
@@ -1041,16 +1042,18 @@ chipset_bus_create(struct visor_device *dev)
 	int rc;
 	u32 bus_no = dev->chipset_bus_no;
 
-	POSTCODE_LINUX(BUS_CREATE_ENTRY_PC, 0, bus_no, DIAG_SEVERITY_PRINT);
+	visorbus_log_postcode(CURRENT_FILE_PC, BUS_CREATE_ENTRY_PC, __LINE__, 0,
+			      bus_no, DIAG_SEVERITY_PRINT);
 	rc = create_bus_instance(dev);
-	POSTCODE_LINUX(BUS_CREATE_EXIT_PC, 0, bus_no, DIAG_SEVERITY_PRINT);
+	visorbus_log_postcode(CURRENT_FILE_PC, BUS_CREATE_EXIT_PC, __LINE__, 0,
+			      bus_no, DIAG_SEVERITY_PRINT);
 
 	if (rc < 0)
-		POSTCODE_LINUX(BUS_CREATE_FAILURE_PC, 0, bus_no,
-			       DIAG_SEVERITY_ERR);
+		visorbus_log_postcode(CURRENT_FILE_PC, BUS_CREATE_FAILURE_PC,
+				      __LINE__, 0, bus_no, DIAG_SEVERITY_ERR);
 	else
-		POSTCODE_LINUX(CHIPSET_INIT_SUCCESS_PC, 0, bus_no,
-			       DIAG_SEVERITY_PRINT);
+		visorbus_log_postcode(CURRENT_FILE_PC, CHIPSET_INIT_SUCCESS_PC,
+				      __LINE__, 0, bus_no, DIAG_SEVERITY_PRINT);
 
 	if (chipset_responders.bus_create)
 		(*chipset_responders.bus_create) (dev, rc);
@@ -1071,19 +1074,21 @@ chipset_device_create(struct visor_device *dev_info)
 	u32 bus_no = dev_info->chipset_bus_no;
 	u32 dev_no = dev_info->chipset_dev_no;
 
-	POSTCODE_LINUX(DEVICE_CREATE_ENTRY_PC, dev_no, bus_no,
-		       DIAG_SEVERITY_PRINT);
+	visorbus_log_postcode(CURRENT_FILE_PC, DEVICE_CREATE_ENTRY_PC, __LINE__,
+			      dev_no, bus_no, DIAG_SEVERITY_PRINT);
 
 	rc = create_visor_device(dev_info);
 	if (chipset_responders.device_create)
 		chipset_responders.device_create(dev_info, rc);
 
 	if (rc < 0)
-		POSTCODE_LINUX(DEVICE_CREATE_FAILURE_PC, dev_no, bus_no,
-			       DIAG_SEVERITY_ERR);
+		visorbus_log_postcode(CURRENT_FILE_PC, DEVICE_CREATE_FAILURE_PC,
+				      __LINE__, dev_no, bus_no,
+				      DIAG_SEVERITY_ERR);
 	else
-		POSTCODE_LINUX(DEVICE_CREATE_SUCCESS_PC, dev_no, bus_no,
-			       DIAG_SEVERITY_PRINT);
+		visorbus_log_postcode(CURRENT_FILE_PC, DEVICE_CREATE_SUCCESS_PC,
+				      __LINE__, dev_no, bus_no,
+				      DIAG_SEVERITY_PRINT);
 }
 
 static void
@@ -1226,14 +1231,16 @@ visorbus_init(void)
 {
 	int err;
 
-	POSTCODE_LINUX(DRIVER_ENTRY_PC, 0, 0, DIAG_SEVERITY_PRINT);
+	visorbus_log_postcode(CURRENT_FILE_PC, DRIVER_ENTRY_PC, __LINE__, 0, 0,
+			      DIAG_SEVERITY_PRINT);
 	bus_device_info_init(&clientbus_driverinfo,
 			     "clientbus", "visorbus",
 			     VERSION, NULL);
 
 	err = create_bus_type();
 	if (err < 0) {
-		POSTCODE_LINUX(BUS_CREATE_ENTRY_PC, 0, 0, DIAG_SEVERITY_ERR);
+		visorbus_log_postcode(CURRENT_FILE_PC, BUS_CREATE_ENTRY_PC,
+				      __LINE__, 0, 0, DIAG_SEVERITY_ERR);
 		goto error;
 	}
 
@@ -1247,7 +1254,8 @@ visorbus_init(void)
 	return 0;
 
 error:
-	POSTCODE_LINUX(CHIPSET_INIT_FAILURE_PC, 0, err, DIAG_SEVERITY_ERR);
+	visorbus_log_postcode(CURRENT_FILE_PC, CHIPSET_INIT_FAILURE_PC,
+			      __LINE__, 0, err, DIAG_SEVERITY_ERR);
 	return err;
 }
 
