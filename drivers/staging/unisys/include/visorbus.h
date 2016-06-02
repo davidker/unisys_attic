@@ -286,10 +286,10 @@ void visorbus_disable_channel_interrupts(struct visor_device *dev);
  * @queue:   the queue the message will be removed from
  * @msg:     the message to remove
  *
- * Return: boolean indicating whether the removal succeeded or failed
+ * Return: integer indicating whether the removal succeeded or failed
  */
-bool visorchannel_signalremove(struct visorchannel *channel, u32 queue,
-			       void *msg);
+int visorchannel_signalremove(struct visorchannel *channel, u32 queue,
+			      void *msg);
 
 /**
  * visorchannel_signalinsert() - inserts a message into the designated

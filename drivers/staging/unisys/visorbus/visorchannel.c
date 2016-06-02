@@ -364,18 +364,18 @@ signalremove_inner(struct visorchannel *channel, u32 queue, void *msg)
 	return true;
 }
 
-bool
+int
 visorchannel_signalremove(struct visorchannel *channel, u32 queue, void *msg)
 {
-	bool rc;
+	int rc;
 	unsigned long flags;
 
 	if (channel->needs_lock) {
 		spin_lock_irqsave(&channel->remove_lock, flags);
-		rc = signalremove_inner(channel, queue, msg);
+		rc = (int)signalremove_inner(channel, queue, msg);
 		spin_unlock_irqrestore(&channel->remove_lock, flags);
 	} else {
-		rc = signalremove_inner(channel, queue, msg);
+		rc = (int)signalremove_inner(channel, queue, msg);
 	}
 
 	return rc;
