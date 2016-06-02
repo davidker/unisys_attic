@@ -309,10 +309,10 @@ int visorchannel_signalinsert(struct visorchannel *channel, u32 queue,
  * @channel: the channel to query
  * @queue:   the queue in the channel to query
  *
- * Return: boolean indicating whether any messages in the designated
- *         channel/queue are present
+ * Return: integer indicating whether any messages in the designated
+ *         channel/queue are present (1 = yes, 0 = no)
  */
-bool visorchannel_signalempty(struct visorchannel *channel, u32 queue);
+int visorchannel_signalempty(struct visorchannel *channel, u32 queue);
 
 /**
  * visorchannel_get_uuid() - queries the UUID of the designated channel
