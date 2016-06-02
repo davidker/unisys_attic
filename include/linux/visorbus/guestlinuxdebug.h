@@ -25,11 +25,6 @@
 /******* INFO ON ISSUE_POSTCODE_LINUX() BELOW *******/
 #ifdef __GNUC__
 
-#define POSTCODE_SEVERITY_ERR DIAG_SEVERITY_ERR
-#define POSTCODE_SEVERITY_WARNING DIAG_SEVERITY_WARNING
-#define POSTCODE_SEVERITY_INFO DIAG_SEVERITY_PRINT
-/* TODO-> Info currently doesn't show, so we set info=warning */
-
 /* Write a 64-bit value to the hypervisor's log file
  * POSTCODE_LINUX generates a value in the form 0xAABBBCCCDDDDEEEE where
  *	A is an identifier for the file logging the postcode
