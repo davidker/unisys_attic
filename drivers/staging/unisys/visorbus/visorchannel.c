@@ -440,18 +440,18 @@ signalinsert_inner(struct visorchannel *channel, u32 queue, void *msg)
 	return true;
 }
 
-bool
+int
 visorchannel_signalinsert(struct visorchannel *channel, u32 queue, void *msg)
 {
-	bool rc;
+	int rc;
 	unsigned long flags;
 
 	if (channel->needs_lock) {
 		spin_lock_irqsave(&channel->insert_lock, flags);
-		rc = signalinsert_inner(channel, queue, msg);
+		rc = (int)signalinsert_inner(channel, queue, msg);
 		spin_unlock_irqrestore(&channel->insert_lock, flags);
 	} else {
-		rc = signalinsert_inner(channel, queue, msg);
+		rc = (int)signalinsert_inner(channel, queue, msg);
 	}
 
 	return rc;

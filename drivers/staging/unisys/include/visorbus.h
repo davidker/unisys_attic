@@ -298,10 +298,10 @@ int visorchannel_signalremove(struct visorchannel *channel, u32 queue,
  * @queue:   the queue the message will be added to
  * @msg:     the message to insert
  *
- * Return: boolean indicating whether the insertion succeeded or failed
+ * Return: integer indicating whether the insertion succeeded or failed
  */
-bool visorchannel_signalinsert(struct visorchannel *channel, u32 queue,
-			       void *msg);
+int visorchannel_signalinsert(struct visorchannel *channel, u32 queue,
+			      void *msg);
 
 /**
  * visorchannel_signalempty() - checks if the designated channel/queue
