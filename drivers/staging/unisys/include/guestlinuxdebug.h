@@ -24,12 +24,10 @@
 
 /******* INFO ON ISSUE_POSTCODE_LINUX() BELOW *******/
 enum driver_pc {		/* POSTCODE driver identifier tuples */
-	/* visorchipset driver files */
-	VISOR_CHIPSET_PC = 0xA0,
-	VISOR_CHIPSET_PC_visorchipset_main_c = 0xA1,
 	/* visorbus driver files */
 	VISOR_BUS_PC = 0xB0,
 	VISOR_BUS_PC_visorbus_main_c = 0xB1,
+	VISOR_BUS_PC_visorchipset_c = 0xB2,
 };
 
 enum event_pc {			/* POSTCODE event identifier tuples */
