@@ -34,7 +34,7 @@
 #include "visorbus_private.h"
 #include "vmcallinterface.h"
 
-#define CURRENT_FILE_PC VISOR_CHIPSET_PC_visorchipset_main_c
+#define CURRENT_FILE_PC VISOR_BUS_PC_visorchipset_c
 
 #define MAX_NAME_SIZE 128
 #define MAX_IP_SIZE   50
