@@ -708,7 +708,9 @@ visorbus_log_postcode(enum driver_pc file, enum event_pc event, u16 line,
 		((((u64)line) & 0xFFF) << 32) |
 		((((u64)info_high) & 0xFFFF) << 16) |
 		(((u64)info_low) & 0xFFFF);
-	ISSUE_IO_VMCALL_POSTCODE_SEVERITY(postcode, severity);
+	unisys_extended_vmcall(VMCALL_POST_CODE_LOGEVENT, severity, MDS_APPOS,
+			       postcode);
+
 }
 EXPORT_SYMBOL_GPL(visorbus_log_postcode);
 
