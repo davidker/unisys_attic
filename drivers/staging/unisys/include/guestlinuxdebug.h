@@ -47,7 +47,8 @@ do {									\
 		((((u64)__LINE__) & 0xFFF) << 32) |			\
 		((((u64)pc16bit1) & 0xFFFF) << 16) |			\
 		(((u64)pc16bit2) & 0xFFFF);				\
-	ISSUE_IO_VMCALL_POSTCODE_SEVERITY(post_code_temp, severity);	\
+	unisys_extended_vmcall(VMCALL_POST_CODE_LOGEVENT, severity,	\
+			       MDS_APPOS, postcode);			\
 } while (0)
 
 #endif
