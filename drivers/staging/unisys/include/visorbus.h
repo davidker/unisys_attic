@@ -36,6 +36,7 @@
 #include <linux/uuid.h>
 #include <linux/seq_file.h>
 #include <linux/slab.h>
+#include <linux/debugfs.h>
 
 #include "channel.h"
 
@@ -172,6 +173,8 @@ struct visor_device {
 	struct controlvm_message_header *pending_msg_hdr;
 	void *vbus_hdr_info;
 	uuid_le partition_uuid;
+
+	struct dentry *debugfs_devname_dir;
 };
 
 #define to_visor_device(x) container_of(x, struct visor_device, device)

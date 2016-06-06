@@ -15,6 +15,8 @@
  */
 
 #include <linux/uuid.h>
+#include <linux/debugfs.h>
+#include <linux/seq_file.h>
 
 #include "visorbus.h"
 #include "visorbus_private.h"
@@ -127,6 +129,8 @@ static struct ultra_vbus_deviceinfo clientbus_driverinfo;
 static LIST_HEAD(list_all_bus_instances);
 /* list of visor_device structs, linked via .list_all */
 static LIST_HEAD(list_all_device_instances);
+
+static struct dentry *visorbus_debugfs_dir;
 
 static int
 visorbus_uevent(struct device *xdev, struct kobj_uevent_env *env)
@@ -539,6 +543,76 @@ dev_stop_periodic_work(struct visor_device *dev)
 	put_device(&dev->device);
 }
 
+static int
+header_debugfs_show(struct seq_file *seq, void *v)
+{
+	struct visor_device *pdev = (struct visor_device *)seq->private;
+	struct visorchannel *channel = pdev->visorchannel;
+	struct channel_header hdr;
+	ulong nbytes = 0;
+	ulong nbytes_region = 0;
+	u64 addr = 0;
+	int errcode = 0;
+
+	if (!channel) {
+		seq_puts(seq, "ERROR: visorchannel pointer is NULL\n");
+		return -EFAULT;
+	}
+
+	addr = visorchannel_get_physaddr(channel);
+	nbytes_region = visorchannel_get_nbytes(channel);
+	errcode = visorchannel_read(channel, 0, &hdr,
+				    sizeof(struct channel_header));
+
+	if (errcode < 0) {
+		seq_printf(seq,
+			   "ERROR: read of channel header failed with errcode=%d\n",
+			   errcode);
+		return -EIO;
+	}
+
+	nbytes = (ulong)(hdr.size);
+	seq_printf(seq, "--- Begin channel @0x%-16.16Lx for 0x%lx bytes (region=0x%lx bytes) ---\n",
+		   addr, nbytes, nbytes_region);
+	seq_printf(seq, "Type            = %pUL\n", &hdr.chtype);
+	seq_printf(seq, "ZoneGuid        = %pUL\n", &hdr.zone_uuid);
+	seq_printf(seq, "Signature       = 0x%-16.16Lx\n",
+		   (long long)hdr.signature);
+	seq_printf(seq, "LegacyState     = %lu\n", (ulong)hdr.legacy_state);
+	seq_printf(seq, "SrvState        = %lu\n", (ulong)hdr.srv_state);
+	seq_printf(seq, "CliStateBoot    = %lu\n", (ulong)hdr.cli_state_boot);
+	seq_printf(seq, "CliStateOS      = %lu\n", (ulong)hdr.cli_state_os);
+	seq_printf(seq, "HeaderSize      = %lu\n", (ulong)hdr.header_size);
+	seq_printf(seq, "Size            = %llu\n", (long long)hdr.size);
+	seq_printf(seq, "Features        = 0x%-16.16llx\n",
+		   (long long)hdr.features);
+	seq_printf(seq, "PartitionHandle = 0x%-16.16llx\n",
+		   (long long)hdr.partition_handle);
+	seq_printf(seq, "Handle          = 0x%-16.16llx\n",
+		   (long long)hdr.handle);
+	seq_printf(seq, "VersionId       = %lu\n", (ulong)hdr.version_id);
+	seq_printf(seq, "oChannelSpace   = %llu\n",
+		   (long long)hdr.ch_space_offset);
+	seq_printf(seq, "--- End   channel @0x%-16.16Lx for 0x%lx bytes ---\n",
+		   addr, nbytes);
+
+	return 0;
+}
+
+static int
+header_debugfs_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, header_debugfs_show, inode->i_private);
+}
+
+static const struct file_operations header_debugfs_fops = {
+	.owner = THIS_MODULE,
+	.open = header_debugfs_open,
+	.read = seq_read,
+	.llseek = seq_lseek,
+	.release = single_release,
+};
+
 /**
  * visordriver_probe_device() - handle new visor device coming online
  * @xdev: struct device for the visor device being probed
@@ -560,12 +634,32 @@ visordriver_probe_device(struct device *xdev)
 	int res;
 	struct visor_driver *drv;
 	struct visor_device *dev;
+	struct dentry *debugfs_channel_dir;
+	struct dentry *debugfs_header;
 
 	drv = to_visor_driver(xdev->driver);
 	dev = to_visor_device(xdev);
 
 	if (!drv->probe)
 		return -ENODEV;
+
+	/* Create debugfs directories */
+	dev->debugfs_devname_dir = debugfs_create_dir(dev_name(xdev),
+						      visorbus_debugfs_dir);
+	if (!dev->debugfs_devname_dir)
+		return -ENOMEM;
+
+	debugfs_channel_dir = debugfs_create_dir("channel",
+						 dev->debugfs_devname_dir);
+	if (!debugfs_channel_dir)
+		goto err_debugfs;
+
+	/* Create debugfs file */
+	debugfs_header = debugfs_create_file("header", S_IRUSR | S_IRGRP,
+					     debugfs_channel_dir, dev,
+					     &header_debugfs_fops);
+	if (!debugfs_header)
+		goto err_debugfs;
 
 	mutex_lock(&dev->visordriver_callback_lock);
 	dev->being_removed = false;
@@ -578,7 +672,12 @@ visordriver_probe_device(struct device *xdev)
 	}
 
 	mutex_unlock(&dev->visordriver_callback_lock);
+
 	return res;
+
+err_debugfs:
+	debugfs_remove_recursive(dev->debugfs_devname_dir);
+	return -ENOMEM;
 }
 
 /**
@@ -607,6 +706,9 @@ visordriver_remove_device(struct device *xdev)
 	dev_stop_periodic_work(dev);
 
 	put_device(&dev->device);
+
+	debugfs_remove_recursive(dev->debugfs_devname_dir);
+
 	return 0;
 }
 
@@ -1404,6 +1506,13 @@ visorbus_init(void)
 			     "clientbus", "visorbus",
 			     VERSION, NULL);
 
+	visorbus_debugfs_dir = debugfs_create_dir("visorbus", NULL);
+	if (!visorbus_debugfs_dir) {
+		visorbus_log_postcode(CURRENT_FILE_PC, CHIPSET_INIT_FAILURE_PC,
+				      __LINE__, 0, err, DIAG_SEVERITY_ERR);
+		return -ENOMEM;
+	}
+
 	err = create_bus_type();
 	if (err < 0) {
 		visorbus_log_postcode(CURRENT_FILE_PC, BUS_CREATE_ENTRY_PC,
@@ -1420,6 +1529,7 @@ visorbus_init(void)
 error:
 	visorbus_log_postcode(CURRENT_FILE_PC, CHIPSET_INIT_FAILURE_PC,
 			      __LINE__, 0, err, DIAG_SEVERITY_ERR);
+	debugfs_remove_recursive(visorbus_debugfs_dir);
 	return err;
 }
 
@@ -1437,6 +1547,7 @@ visorbus_exit(void)
 		remove_bus_instance(dev);
 	}
 	remove_bus_type();
+	debugfs_remove_recursive(visorbus_debugfs_dir);
 }
 
 module_param_named(forcematch, visorbus_forcematch, int, S_IRUGO);
