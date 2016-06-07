@@ -38,7 +38,6 @@
 #include <linux/slab.h>
 
 #include "channel.h"
-#include "diagchannel.h"
 
 struct visor_driver;
 struct visor_device;
@@ -193,6 +192,25 @@ enum driver_pc {		/* POSTCODE driver identifier tuples */
 	VISOR_BUS_PC = 0xF0,
 	VISOR_BUS_PC_visorbus_main_c = 0xFF,
 	VISOR_BUS_PC_visorchipset_c = 0xFE,
+};
+
+/* Levels of severity for diagnostic events, in order from lowest severity to
+ * highest (i.e. fatal errors are the most severe, and should always be logged,
+ * but info events rarely need to be logged except during debugging). The
+ * values DIAG_SEVERITY_ENUM_BEGIN and DIAG_SEVERITY_ENUM_END are not valid
+ * severity values.  They exist merely to dilineate the list, so that future
+ * additions won't require changes to the driver (i.e. when checking for
+ * out-of-range severities in SetSeverity). The values DIAG_SEVERITY_OVERRIDE
+ * and DIAG_SEVERITY_SHUTOFF are not valid severity values for logging events
+ * but they are valid for controlling the amount of event data. Changes made
+ * to the enum, need to be reflected in s-Par.
+ */
+enum diag_severity {
+                DIAG_SEVERITY_VERBOSE = 0,
+                DIAG_SEVERITY_INFO = 1,
+                DIAG_SEVERITY_WARNING = 2,
+                DIAG_SEVERITY_ERR = 3,
+                DIAG_SEVERITY_PRINT = 4,
 };
 
 enum event_pc {			/* POSTCODE event identifier tuples */
