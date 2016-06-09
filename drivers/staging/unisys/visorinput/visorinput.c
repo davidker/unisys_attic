@@ -29,7 +29,6 @@
 #include <linux/kernel.h>
 #include <linux/visorbus/version.h>
 #include <linux/visorbus/visorbus.h>
-#include <linux/visorbus/channel.h>
 #include <linux/uuid.h>
 #include <linux/workqueue.h>
 
