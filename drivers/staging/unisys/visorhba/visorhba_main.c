@@ -26,6 +26,8 @@
 #include "visorbus.h"
 #include "iochannel.h"
 
+#define VERSION "1.16.6.24"  /* visorhba driver version */
+
 #define MAX_PENDING_REQUESTS	(MIN_NUMSIGNALS * 2)
 
 static int visorhba_queue_command_lck(struct scsi_cmnd *scsicmd,
@@ -1217,3 +1219,4 @@ module_exit(visorhba_exit);
 MODULE_AUTHOR("Unisys");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("s-Par HBA driver for virtual SCSI host busses");
+MODULE_VERSION(VERSION);
