@@ -28,7 +28,6 @@
 #include "channel.h"
 #include "controlvmchannel.h"
 #include "controlvmcompletionstatus.h"
-#include "version.h"
 #include "visorbus.h"
 #include "visorbus_private.h"
 #include "vmcallinterface.h"
