@@ -2379,6 +2379,5 @@ module_exit(exit_unisys);
 
 MODULE_AUTHOR("Unisys");
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("Supervisor chipset driver for service partition: ver "
-		   VERSION);
+MODULE_DESCRIPTION("s-Par visorchipset/visorbus driver for virtual device busses");
 MODULE_VERSION(VERSION);
