@@ -252,8 +252,8 @@ void visorbus_log_postcode(enum driver_pc file, enum event_pc event, u16 line,
 			   enum diag_severity severity);
 int visorchannel_signalremove(struct visorchannel *channel, u32 queue,
 			      void *msg);
-bool visorchannel_signalinsert(struct visorchannel *channel, u32 queue,
-			       void *msg);
+int visorchannel_signalinsert(struct visorchannel *channel, u32 queue,
+			      void *msg);
 bool visorchannel_signalempty(struct visorchannel *channel, u32 queue);
 uuid_le visorchannel_get_uuid(struct visorchannel *channel);
 

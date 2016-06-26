@@ -427,7 +427,7 @@ post_skb(struct uiscmdrsp *cmdrsp,
 		cmdrsp->cmdtype = CMD_NET_TYPE;
 		if (visorchannel_signalinsert(devdata->dev->visorchannel,
 					      IOCHAN_TO_IOPART,
-					      cmdrsp)) {
+					      cmdrsp) >= 0) {
 			atomic_inc(&devdata->num_rcvbuf_in_iovm);
 			devdata->chstat.sent_post++;
 		} else {
@@ -456,7 +456,7 @@ send_enbdis(struct net_device *netdev, int state,
 	devdata->cmdrsp_rcv->cmdtype = CMD_NET_TYPE;
 	if (visorchannel_signalinsert(devdata->dev->visorchannel,
 				      IOCHAN_TO_IOPART,
-				      devdata->cmdrsp_rcv))
+				      devdata->cmdrsp_rcv) >= 0)
 		devdata->chstat.sent_enbdis++;
 }
 
@@ -920,8 +920,8 @@ visornic_xmit(struct sk_buff *skb, struct net_device *netdev)
 		return NETDEV_TX_OK;
 	}
 
-	if (!visorchannel_signalinsert(devdata->dev->visorchannel,
-				       IOCHAN_TO_IOPART, cmdrsp)) {
+	if (visorchannel_signalinsert(devdata->dev->visorchannel,
+				      IOCHAN_TO_IOPART, cmdrsp) < 0) {
 		netif_stop_queue(netdev);
 		spin_unlock_irqrestore(&devdata->priv_lock, flags);
 		devdata->busy_cnt++;

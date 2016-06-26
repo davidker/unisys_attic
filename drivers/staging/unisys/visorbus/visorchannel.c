@@ -450,13 +450,13 @@ visorchannel_signalempty(struct visorchannel *channel, u32 queue)
 }
 EXPORT_SYMBOL_GPL(visorchannel_signalempty);
 
-static bool
+static int
 signalinsert_inner(struct visorchannel *channel, u32 queue, void *msg)
 {
 	struct signal_queue_header sig_hdr;
 
 	if (!sig_read_header(channel, queue, &sig_hdr))
-		return false;
+		return -EPERM;
 
 	sig_hdr.head = (sig_hdr.head + 1) % sig_hdr.max_slots;
 	if (sig_hdr.head == sig_hdr.tail) {
@@ -467,11 +467,11 @@ signalinsert_inner(struct visorchannel *channel, u32 queue, void *msg)
 					    num_overflows),
 				   &sig_hdr.num_overflows,
 				   sizeof(sig_hdr.num_overflows));
-		return false;
+		return -EPERM;
 	}
 
 	if (!sig_write_data(channel, queue, &sig_hdr, sig_hdr.head, msg))
-		return false;
+		return -EPERM;
 
 	sig_hdr.num_sent++;
 
@@ -481,11 +481,11 @@ signalinsert_inner(struct visorchannel *channel, u32 queue, void *msg)
 	 */
 	mb(); /* required for channel synch */
 	if (!SIG_WRITE_FIELD(channel, queue, &sig_hdr, head))
-		return false;
+		return -EPERM;
 	if (!SIG_WRITE_FIELD(channel, queue, &sig_hdr, num_sent))
-		return false;
+		return -EPERM;
 
-	return true;
+	return 0;
 }
 
 /**
@@ -495,12 +495,12 @@ signalinsert_inner(struct visorchannel *channel, u32 queue, void *msg)
  * @queue:   the queue the message will be added to
  * @msg:     the message to insert
  *
- * Return: boolean indicating whether the insertion succeeded or failed
+ * Return: integer error code indicating the status of the removal
  */
-bool
+int
 visorchannel_signalinsert(struct visorchannel *channel, u32 queue, void *msg)
 {
-	bool rc;
+	int rc;
 	unsigned long flags;
 
 	if (channel->needs_lock) {
