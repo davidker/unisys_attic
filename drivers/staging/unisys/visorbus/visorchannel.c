@@ -366,19 +366,19 @@ sig_write_data(struct visorchannel *channel, u32 queue,
 	return true;
 }
 
-static bool
+static int
 signalremove_inner(struct visorchannel *channel, u32 queue, void *msg)
 {
 	struct signal_queue_header sig_hdr;
 
 	if (!sig_read_header(channel, queue, &sig_hdr))
-		return false;
+		return -EPERM;
 	if (sig_hdr.head == sig_hdr.tail)
-		return false;	/* no signals to remove */
+		return -EPERM;	/* no signals to remove */
 
 	sig_hdr.tail = (sig_hdr.tail + 1) % sig_hdr.max_slots;
 	if (!sig_read_data(channel, queue, &sig_hdr, sig_hdr.tail, msg))
-		return false;
+		return -EPERM;
 	sig_hdr.num_received++;
 
 	/*
@@ -387,10 +387,10 @@ signalremove_inner(struct visorchannel *channel, u32 queue, void *msg)
 	 */
 	mb(); /* required for channel synch */
 	if (!SIG_WRITE_FIELD(channel, queue, &sig_hdr, tail))
-		return false;
+		return -EPERM;
 	if (!SIG_WRITE_FIELD(channel, queue, &sig_hdr, num_received))
-		return false;
-	return true;
+		return -EPERM;
+	return 0;
 }
 
 /**
@@ -400,12 +400,12 @@ signalremove_inner(struct visorchannel *channel, u32 queue, void *msg)
  * @queue:   the queue the message will be removed from
  * @msg:     the message to remove
  *
- * Return: boolean indicating whether the removal succeeded or failed
+ * Return: integer error code indicating the status of the removal
  */
-bool
+int
 visorchannel_signalremove(struct visorchannel *channel, u32 queue, void *msg)
 {
-	bool rc;
+	int rc;
 	unsigned long flags;
 
 	if (channel->needs_lock) {

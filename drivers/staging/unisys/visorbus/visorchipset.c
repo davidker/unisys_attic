@@ -1417,7 +1417,7 @@ static bool
 read_controlvm_event(struct controlvm_message *msg)
 {
 	if (visorchannel_signalremove(controlvm_channel,
-				      CONTROLVM_QUEUE_EVENT, msg)) {
+				      CONTROLVM_QUEUE_EVENT, msg) >= 0) {
 		/* got a message */
 		if (msg->hdr.flags.test_message == 1)
 			return false;
@@ -1810,7 +1810,7 @@ controlvm_periodic_work(struct work_struct *work)
 
 	while (visorchannel_signalremove(controlvm_channel,
 					 CONTROLVM_QUEUE_RESPONSE,
-					 &inmsg))
+					 &inmsg) >= 0)
 		;
 	if (!got_command) {
 		if (controlvm_pending_msg_valid) {
