@@ -17,6 +17,8 @@
 #ifndef __VISORBUS_PRIVATE_H__
 #define __VISORBUS_PRIVATE_H__
 
+#define VERSION "2.16.6.24"  /* visorbus driver version */
+
 #include <linux/uuid.h>
 
 #include "controlvmchannel.h"

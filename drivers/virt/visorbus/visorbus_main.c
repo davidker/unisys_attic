@@ -19,7 +19,6 @@
 #include <linux/uuid.h>
 
 #include <linux/visorbus/visorbus.h>
-#include <linux/visorbus/version.h>
 #include "visorbus_private.h"
 #include "vbuschannel.h"
 #include "vmcallinterface.h"
