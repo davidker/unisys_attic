@@ -26,6 +26,8 @@
 #include <linux/visorbus/visorbus.h>
 #include <linux/visorbus/iochannel.h>
 
+#define VERSION "2.16.6.24"  /* visornic driver version */
+
 #define VISORNIC_INFINITE_RSP_WAIT 0
 #define VISORNICSOPENMAX 32
 #define MAXDEVICES     16384
@@ -2093,4 +2095,4 @@ module_exit(visornic_cleanup);
 MODULE_AUTHOR("Unisys");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("s-Par NIC driver for virtual network devices");
-MODULE_VERSION("1.0.0.0");
+MODULE_VERSION(VERSION);
