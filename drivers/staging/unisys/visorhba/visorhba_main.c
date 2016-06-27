@@ -25,6 +25,8 @@
 #include <linux/visorbus/visorbus.h>
 #include <linux/visorbus/iochannel.h>
 
+#define VERSION "2.16.6.24"  /* visorhba driver version */
+
 /* The Send and Receive Buffers of the IO Queue may both be full */
 
 #define IOS_ERROR_THRESHOLD	1000
@@ -1197,3 +1199,4 @@ module_exit(visorhba_exit);
 MODULE_AUTHOR("Unisys");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("s-Par HBA driver for virtual SCSI host busses");
+MODULE_VERSION(VERSION);
