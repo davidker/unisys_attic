@@ -41,7 +41,7 @@ static int visorbus_debugref;
 
 static int visorbus_uevent(struct device *xdev, struct kobj_uevent_env *env);
 static int visorbus_match(struct device *xdev, struct device_driver *xdrv);
-static void fix_vbus_dev_info(struct visor_device *visordev);
+static void publish_vbus_dev_info(struct visor_device *visordev);
 
 /*  BUS type attributes
  *
@@ -778,7 +778,7 @@ visordriver_probe_device(struct device *xdev)
 	if (rc < 0)
 		goto away;
 
-	fix_vbus_dev_info(dev);
+	publish_vbus_dev_info(dev);
 	up(&dev->visordriver_callback_lock);
 	rc = 0;
 away:
@@ -1244,7 +1244,7 @@ write_vbus_dev_info(struct visorchannel *chan,
  * instance.
  */
 static void
-fix_vbus_dev_info(struct visor_device *visordev)
+publish_vbus_dev_info(struct visor_device *visordev)
 {
 	int i;
 	struct visor_device *bdev;
@@ -1545,7 +1545,7 @@ initiate_chipset_device_pause_resume(struct visor_device *dev, bool is_pause)
 		 * resume...  This hack would fail to work should we
 		 * ever have a bus that contains NO devices, since we
 		 * would never even get here in that case. */
-		fix_vbus_dev_info(dev);
+		publish_vbus_dev_info(dev);
 		if (!drv->resume)
 			goto away;
 
